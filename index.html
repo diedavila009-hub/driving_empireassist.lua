@@ -1,195 +1,173 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Driving Empire — Race Analyzer Pro</title>
-  <style>
-    :root {
-      --bg: #0f1222; --panel: #1a1f36; --text: #e6e6f0;
-      --muted: #9aa0aa; --accent: #32a852; --warn: #f0a000;
-      --danger: #e24a4a; --info: #2a84e8;
-    }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      margin: 0; padding: 20px; background: var(--bg); color: var(--text);
-    }
-    .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
-    @media (min-width: 1100px) { .grid { grid-template-columns: 350px 1fr; } }
-    .panel { background: var(--panel); border-radius: 12px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-    textarea { 
-      width: 100%; background: #0b1026; color: #50fa7b; border: 1px solid #2a3457; 
-      border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; resize: vertical;
-    }
-    button { 
-      width: 100%; cursor: pointer; padding: 12px; border-radius: 8px; border: none; 
-      font-weight: bold; margin-top: 8px; transition: 0.2s;
-    }
-    .primary { background: var(--info); color: white; }
-    .primary:hover { background: #1b63b5; }
-    .danger { background: #3d1414; color: var(--danger); border: 1px solid var(--danger); }
-    .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(2, 1fr); margin-top: 10px; }
-    .stat { background: #101633; border: 1px solid #213066; border-radius: 8px; padding: 8px; }
-    .stat b { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; }
-    .stat span { font-size: 16px; font-weight: bold; }
-    canvas { width: 100%; background: #0b1026; border-radius: 10px; margin-top: 10px; display: block; }
-    .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Driving Empire - Advanced Physics Analyzer</title>
+    <style>
+        :root {
+            --bg: #0a0c14; --panel: #161a2e; --text: #f0f0f5;
+            --accent: #00ff88; --danger: #ff4d4d; --info: #00d9ff; --gold: #ffd700;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; overflow-x: hidden; }
+        .dashboard { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+        .panel { background: var(--panel); border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #2a304d; }
+        h2 { margin-top: 0; font-size: 18px; color: var(--info); text-transform: uppercase; letter-spacing: 1px; }
+        textarea { 
+            width: 100%; background: #05070a; color: #50fa7b; border: 1px solid #333; 
+            padding: 10px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 11px; resize: none;
+        }
+        canvas { background: #05070a; border-radius: 8px; width: 100%; image-rendering: crisp-edges; }
+        .stat-card { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--info); }
+        .stat-card b { display: block; font-size: 10px; color: #888; text-transform: uppercase; }
+        .stat-card span { font-size: 20px; font-weight: bold; font-family: 'Orbitron', sans-serif; }
+        .btn { 
+            width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; 
+            cursor: pointer; transition: 0.3s; margin-top: 10px;
+        }
+        .btn-primary { background: var(--info); color: #000; }
+        .btn-primary:hover { background: #fff; }
+        .legend { font-size: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+    </style>
 </head>
 <body>
 
-<header style="margin-bottom: 20px;">
-  <h1 style="margin:0; color: var(--info);">Race Analyzer Pro <span style="font-size: 12px; color: var(--accent);">v2.0 Metric</span></h1>
-  <p style="margin:5px 0; color: var(--muted);">Análisis de frenada en tiempo real • Conversión a KM/H • Auto-Reparación de JSON</p>
-</header>
+<div class="dashboard">
+    <div class="panel">
+        <h2>Telemetría Pro</h2>
+        <textarea id="jsonInput" rows="12" placeholder="Pega los datos de Roblox aquí..."></textarea>
+        <button id="btnProcess" class="btn btn-primary">ANALIZAR DATOS</button>
+        
+        <div style="margin-top: 20px;">
+            <div class="stat-card"><b>Velocidad Máxima</b><span id="stMaxSpd">0</span> km/h</div>
+            <div class="stat-card" style="border-color: var(--danger)"><b>Impactos Detectados</b><span id="stColls">0</span></div>
+            <div class="stat-card" style="border-color: var(--gold)"><b>Tiempo en Aire (Airtime)</b><span id="stAir">0.00</span>s</div>
+            <div class="stat-card"><b>Distancia de Carrera</b><span id="stDist">0.00</span> km</div>
+        </div>
 
-<div class="grid">
-  <div class="panel">
-    <h3>Entrada de Telemetría</h3>
-    <textarea id="jsonInput" rows="15" placeholder="Pega el JSON de Roblox aquí... (Acepta bloques cortados)"></textarea>
-    <button class="primary" id="btnProcess">Procesar / Combinar Datos</button>
-    <button class="danger" id="btnClear" style="margin-top:20px;">Borrar Sesión</button>
-    
-    <div class="stat-grid">
-      <div class="stat"><b>Distancia</b><span id="stDist">0.00 km</span></div>
-      <div class="stat"><b>V. Máx</b><span id="stMaxSpeed">0 km/h</span></div>
-      <div class="stat"><b>Tiempo</b><span id="stDuration">0.0s</span></div>
-      <div class="stat"><b>Muestras</b><span id="stCount">0</span></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h3>Trazado de Pista (GPS)</h3>
-    <canvas id="trackCanvas" width="900" height="450"></canvas>
-    
-    <div class="legend">
-      <span><span class="dot" style="background:var(--info)"></span> Trayectoria</span>
-      <span><span class="dot" style="background:var(--accent)"></span> Frenado OK</span>
-      <span><span class="dot" style="background:var(--danger)"></span> Frenado con Giro</span>
+        <div class="legend">
+            <div class="legend-item"><div class="dot" style="background:var(--info)"></div> Trayectoria</div>
+            <div class="legend-item"><div class="dot" style="background:var(--accent)"></div> Frenada Pro</div>
+            <div class="legend-item"><div class="dot" style="background:var(--danger)"></div> Choque/Giro</div>
+            <div class="legend-item"><div class="dot" style="background:white"></div> Impacto Duro</div>
+        </div>
     </div>
 
-    <h3 style="margin-top:25px;">Curva de Velocidad (km/h)</h3>
-    <canvas id="speedCanvas" width="900" height="180"></canvas>
-  </div>
+    <div class="panel">
+        <h2>Mapa de Física del Circuito</h2>
+        <canvas id="trackCanvas" width="900" height="550"></canvas>
+        <h2 style="margin-top:20px;">Curva de Velocidad y Fuerzas G</h2>
+        <canvas id="speedCanvas" width="900" height="150"></canvas>
+    </div>
 </div>
 
 <script>
-  let state = { lapData: [] };
+    const trackCanvas = document.getElementById('trackCanvas');
+    const speedCanvas = document.getElementById('speedCanvas');
+    const tCtx = trackCanvas.getContext('2d');
+    const sCtx = speedCanvas.getContext('2d');
 
-  function repairJson(text) {
-    let raw = text.trim();
-    // Limpiar basura al final
-    const lastBrace = raw.lastIndexOf('}');
-    if (lastBrace !== -1) raw = raw.substring(0, lastBrace + 1);
+    // --- REPARACIÓN AVANZADA ---
+    function deepRepair(text) {
+        let clean = text.trim();
+        // Cortar basura final tipo "po" o "del"
+        const lastBrace = clean.lastIndexOf('}');
+        if (lastBrace !== -1) clean = clean.substring(0, lastBrace + 1);
 
-    // Balancear cierres
-    const stack = [];
-    for (let char of raw) {
-      if (char === '{' || char === '[') stack.push(char === '{' ? '}' : ']');
-      else if (char === '}' || char === ']') {
-        if (stack.length > 0 && stack[stack.length - 1] === char) stack.pop();
-      }
-    }
-    while (stack.length > 0) raw += stack.pop();
-
-    try {
-      const parsed = JSON.parse(raw);
-      return parsed.samples || parsed.data || (Array.isArray(parsed) ? parsed : []);
-    } catch (e) {
-      const matches = raw.match(/\{"time".*?\}/g);
-      return matches ? matches.map(m => JSON.parse(m)) : [];
-    }
-  }
-
-  function drawSpeedGraph(samples) {
-    const canvas = document.getElementById('speedCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    
-    const maxSpd = Math.max(...samples.map(s => s.speed * 3.6)) || 100;
-    const pad = 20;
-
-    ctx.beginPath();
-    ctx.strokeStyle = "#50fa7b";
-    ctx.lineWidth = 2;
-    
-    samples.forEach((s, i) => {
-      const x = (i / samples.length) * (canvas.width - pad * 2) + pad;
-      const y = canvas.height - ((s.speed * 3.6) / maxSpd * (canvas.height - pad * 2)) - pad;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  }
-
-  function renderTrack() {
-    if (state.lapData.length === 0) return;
-    const samples = state.lapData;
-    const canvas = document.getElementById('trackCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    const xs = samples.map(s => s.pos.x), zs = samples.map(s => s.pos.z);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minZ = Math.min(...zs), maxZ = Math.max(...zs);
-    const scale = Math.min((canvas.width-60)/(maxX-minX || 1), (canvas.height-60)/(maxZ-minZ || 1));
-
-    const getX = (x) => (x - minX) * scale + 30;
-    const getZ = (z) => (z - minZ) * scale + 30;
-
-    // Línea de trayectoria
-    ctx.beginPath();
-    ctx.strokeStyle = "rgba(42, 132, 232, 0.5)";
-    ctx.lineWidth = 3;
-    samples.forEach((s, i) => {
-      if (i === 0) ctx.moveTo(getX(s.pos.x), getZ(s.pos.z));
-      else ctx.lineTo(getX(s.pos.x), getZ(s.pos.z));
-    });
-    ctx.stroke();
-
-    // Puntos de frenada
-    let totalDist = 0;
-    let maxSpeedKmh = 0;
-    samples.forEach((s, i) => {
-      const speedKmh = s.speed * 3.6;
-      if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh;
-      
-      if (i > 0) {
-        const prev = samples[i-1];
-        const d = Math.sqrt(Math.pow(s.pos.x-prev.pos.x,2)+Math.pow(s.pos.z-prev.pos.z,2));
-        totalDist += d;
-
-        if (speedKmh < (prev.speed * 3.6) - 1.5) { // Frenando
-          ctx.fillStyle = Math.abs(s.steer || 0) > 0.3 ? "var(--danger)" : "var(--accent)";
-          ctx.beginPath();
-          ctx.arc(getX(s.pos.x), getZ(s.pos.z), 3, 0, Math.PI*2);
-          ctx.fill();
+        // Intento de parseo por bloques (Regex) para ser inmune a cortes
+        const matches = clean.match(/\{"headingErrorDeg".*?\}/g);
+        if (matches) {
+            return matches.map(m => {
+                try { return JSON.parse(m + (m.endsWith('}') ? '' : '}')); } 
+                catch(e) { return null; }
+            }).filter(x => x !== null);
         }
-      }
-    });
-
-    document.getElementById('stDist').innerText = (totalDist / 1000).toFixed(3) + " km";
-    document.getElementById('stMaxSpeed').innerText = maxSpeedKmh.toFixed(0) + " km/h";
-    document.getElementById('stDuration').innerText = samples[samples.length-1].time.toFixed(1) + "s";
-    document.getElementById('stCount').innerText = samples.length;
-    
-    drawSpeedGraph(samples);
-  }
-
-  document.getElementById('btnProcess').onclick = () => {
-    const raw = document.getElementById('jsonInput').value;
-    const newPoints = repairJson(raw);
-    if (newPoints.length > 0) {
-      state.lapData.push(...newPoints);
-      renderTrack();
-      document.getElementById('jsonInput').value = "";
-    } else {
-      alert("No se detectaron datos válidos.");
+        return [];
     }
-  };
 
-  document.getElementById('btnClear').onclick = () => {
-    if(confirm("¿Borrar todos los datos actuales?")) location.reload();
-  };
+    document.getElementById('btnProcess').onclick = () => {
+        const raw = document.getElementById('jsonInput').value;
+        const samples = deepRepair(raw);
+        if (!samples.length) return alert("Datos no reconocidos o muy corruptos.");
+
+        tCtx.clearRect(0,0,trackCanvas.width,trackCanvas.height);
+        sCtx.clearRect(0,0,speedCanvas.width,speedCanvas.height);
+
+        // Configuración de límites y escalas
+        const xs = samples.map(s => s.pos.x), zs = samples.map(s => s.pos.z);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+        const scale = Math.min((trackCanvas.width-100)/(maxX-minX || 1), (trackCanvas.height-100)/(maxZ-minZ || 1));
+
+        const getX = (x) => (x - minX) * scale + 50;
+        const getZ = (z) => (z - minZ) * scale + 50;
+
+        let maxKmh = 0, totalDist = 0, crashes = 0, airtime = 0;
+
+        // --- DIBUJO DE TRAYECTORIA Y FÍSICA ---
+        samples.forEach((s, i) => {
+            const kmh = s.speed * 3.6;
+            if (kmh > maxKmh) maxKmh = kmh;
+
+            if (i > 0) {
+                const prev = samples[i-1];
+                
+                // 1. Calcular distancia (km)
+                totalDist += Math.sqrt(Math.pow(s.pos.x-prev.pos.x,2) + Math.pow(s.pos.z-prev.pos.z,2));
+
+                // 2. Detectar Airtime (Salto en eje Y)
+                if (Math.abs(s.pos.y - prev.pos.y) > 0.5 && s.speed > 5) {
+                    airtime += (s.time - prev.time);
+                }
+
+                // 3. Dibujar línea base
+                tCtx.beginPath();
+                tCtx.strokeStyle = "rgba(0, 217, 255, 0.3)";
+                tCtx.lineWidth = 2;
+                tCtx.moveTo(getX(prev.pos.x), getZ(prev.pos.z));
+                tCtx.lineTo(getX(s.pos.x), getZ(s.pos.z));
+                tCtx.stroke();
+
+                // 4. Lógica de frenado Pro vs Derrape
+                if (s.deltaV > 1.5) { // Está perdiendo velocidad
+                    const isDrifting = Math.abs(s.headingErrorDeg) > 15 || Math.abs(s.lateralSpeed) > 3;
+                    tCtx.fillStyle = isDrifting ? "var(--danger)" : "var(--accent)";
+                    tCtx.beginPath();
+                    tCtx.arc(getX(s.pos.x), getZ(s.pos.z), 4, 0, Math.PI*2);
+                    tCtx.fill();
+                }
+
+                // 5. Marcador de colisión (Impacto duro)
+                if (s.collision) {
+                    crashes++;
+                    tCtx.strokeStyle = "white";
+                    tCtx.lineWidth = 3;
+                    const cx = getX(s.pos.x), cz = getZ(s.pos.z);
+                    tCtx.beginPath();
+                    tCtx.moveTo(cx-12, cz-12); tCtx.lineTo(cx+12, cz+12);
+                    tCtx.moveTo(cx+12, cz-12); tCtx.lineTo(cx-12, cz+12);
+                    tCtx.stroke();
+                }
+            }
+        });
+
+        // Gráfico de Velocidad simplificado
+        sCtx.beginPath();
+        sCtx.strokeStyle = "var(--accent)";
+        samples.forEach((s, i) => {
+            const x = (i / samples.length) * speedCanvas.width;
+            const y = speedCanvas.height - (s.speed * 3.6 / maxKmh * speedCanvas.height);
+            if(i===0) sCtx.moveTo(x,y); else sCtx.lineTo(x,y);
+        });
+        sCtx.stroke();
+
+        // Actualizar UI
+        document.getElementById('stMaxSpd').innerText = Math.round(maxKmh);
+        document.getElementById('stColls').innerText = crashes;
+        document.getElementById('stDist').innerText = (totalDist / 1000).toFixed(3);
+        document.getElementById('stAir').innerText = airtime.toFixed(2);
+    };
 </script>
 </body>
 </html>
