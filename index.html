@@ -2,330 +2,221 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>ULTRALYTICS AI - GESTOR DE CARRERAS Y TELEMETRÍA</title>
+    <title>ULTRALYTICS AI - SISTEMA DE GESTIÓN DE CARRERAS</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --neon: #00f2ff; --bg: #050505; --card: #111; --border: #222; }
-        body { background: var(--bg); color: var(--neon); font-family: 'Segoe UI', sans-serif; padding: 15px; margin: 0; }
-        .dashboard { max-width: 1200px; margin: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
-        .full { grid-column: 1 / -1; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        h2, h3 { margin-top: 0; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+        :root { --neon: #00f2ff; --bg: #050505; --card: #111; --danger: #ff4444; --success: #00ff88; }
+        body { background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; }
         
-        /* Input y Botones */
-        textarea { width: 100%; height: 60px; background: #000; border: 1px solid var(--neon); color: #0f8; border-radius: 8px; padding: 10px; box-sizing: border-box; font-family: monospace; font-size: 12px; margin-bottom: 10px; }
-        .btn { width: 100%; padding: 12px; background: var(--neon); color: #000; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; }
-        .btn:hover { background: #00b8c4; transform: scale(1.01); }
+        .layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; max-width: 1400px; margin: auto; }
         
-        /* Stats */
-        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; margin-bottom: 15px; }
-        .stat-item { padding: 8px; background: #000; border-radius: 6px; border-bottom: 2px solid var(--neon); }
-        .val { font-size: 22px; color: #fff; display: block; font-weight: 800; }
-        label { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; }
+        /* Panel Izquierdo: Explorador de Archivos */
+        .explorer { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 15px; height: 85vh; overflow-y: auto; }
+        .folder { margin-bottom: 15px; }
+        .folder-title { font-weight: bold; color: var(--neon); display: flex; align-items: center; cursor: pointer; padding: 5px; border-bottom: 1px solid #222; }
+        .folder-title::before { content: "📁 "; margin-right: 8px; }
+        .race-link { padding: 8px 15px; font-size: 13px; cursor: pointer; border-radius: 5px; transition: 0.2s; display: block; color: #aaa; text-decoration: none; }
+        .race-link:hover { background: #222; color: #fff; }
+        .race-link.active { background: rgba(0, 242, 255, 0.1); color: var(--neon); border-right: 3px solid var(--neon); }
 
-        /* IA Box */
-        .ai-box { background: rgba(0, 242, 255, 0.05); border: 1px dashed var(--neon); padding: 15px; border-radius: 8px; line-height: 1.5; min-height: 100px; }
+        /* Panel Derecho: Telemetría */
+        .main-panel { display: flex; flex-direction: column; gap: 20px; }
+        .card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 20px; }
         
-        /* Historial */
-        .history-list { list-style: none; padding: 0; max-height: 350px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--neon) transparent; }
-        .history-list::-webkit-scrollbar { width: 8px; }
-        .history-list::-webkit-scrollbar-track { background: transparent; }
-        .history-list::-webkit-scrollbar-thumb { background-color: var(--neon); border-radius: 10px; border: 2px solid var(--card); }
+        .header-ui { display: flex; justify-content: space-between; align-items: center; }
+        textarea { width: 100%; height: 50px; background: #000; border: 1px solid #444; color: var(--success); border-radius: 8px; padding: 10px; margin-top: 10px; resize: none; }
         
-        .history-item { 
-            background: #000; padding: 10px; border-radius: 8px; margin-bottom: 8px; 
-            border-left: 4px solid var(--neon); font-size: 13px; cursor: pointer; 
-            display: flex; align-items: center; justify-content: space-between;
-            transition: 0.2s;
-        }
-        .history-item:hover { background: #1a1a1a; transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,242,255,0.2); }
-        .history-info { flex-grow: 1; }
-        .history-info b { color: #fff; font-size: 15px; }
-        .history-info small { color: #aaa; }
-        .history-map { width: 60px; height: 40px; background: #333; border-radius: 4px; margin-left: 10px; }
-        
-        /* Canvas y Charts */
-        canvas { width: 100% !important; background: #000; border-radius: 8px; }
-        .status-msg { text-align: center; font-weight: bold; margin-top: 10px; font-size: 14px; }
+        .stat-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat { background: #000; padding: 15px; border-radius: 8px; border-bottom: 2px solid var(--neon); text-align: center; }
+        .stat label { font-size: 11px; color: #888; display: block; margin-bottom: 5px; }
+        .stat span { font-size: 18px; font-weight: bold; }
 
-        /* Botón borrar historial */
-        .clear-history-btn { background: #555; margin-top: 15px; font-size: 11px; padding: 8px; }
-        .clear-history-btn:hover { background: #777; }
+        .map-container { position: relative; width: 100%; height: 400px; background: #000; border-radius: 8px; border: 1px solid #222; }
+        canvas { width: 100% !important; height: 100% !important; }
+
+        .btn-action { background: var(--neon); color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="dashboard">
-    <div class="card full">
-        <h2>🛰️ ULTRALYTICS AI: GESTOR DE CARRERAS</h2>
-        <textarea id="dataInput" placeholder="Pega los datos de la vuelta aquí (desde Roblox)..."></textarea>
-        <button class="btn" onclick="procesarNuevaVuelta()">IDENTIFICAR Y ANALIZAR VUELTA</button>
-        <div id="status" class="status-msg"></div>
-    </div>
-
-    <div class="card">
-        <h3>📊 RENDIMIENTO ACTUAL</h3>
-        <div class="stat-grid">
-            <div class="stat-item"><label>VEL. MÁX</label><span id="top-speed" class="val">0</span></div>
-            <div class="stat-item"><label>FUERZA G</label><span id="max-g" class="val">0</span></div>
-            <div class="stat-item"><label>MUESTRAS</label><span id="samples" class="val">0</span></div>
+<div class="layout">
+    <aside class="explorer">
+        <h3>📂 CARRERAS/</h3>
+        <div id="fileSystem">
+            <p style="font-size: 12px; color: #555;">No hay circuitos guardados.</p>
         </div>
-        <div class="stat-grid">
-            <div class="stat-item"><label>CHOQUES</label><span id="collisions" class="val" style="color:#ff4444;">0</span></div>
-            <div class="stat-item"><label>DERRAPES</label><span id="skids" class="val" style="color:#ffd700;">0</span></div>
-            <div class="stat-item"><label>MANEJO</label><span id="corrections" class="val" style="color:#00ff88;">--</span></div>
+        <button class="btn-action" style="margin-top:20px; width:100%; background:#333; color:#fff;" onclick="borrarTodo()">BORRAR MEMORIA</button>
+    </aside>
+
+    <main class="main-panel">
+        <div class="card">
+            <div class="header-ui">
+                <h2>🛰️ TERMINAL DE DATOS</h2>
+                <button class="btn-action" onclick="procesarEntrada()">ANALIZAR VUELTA</button>
+            </div>
+            <textarea id="rawInput" placeholder="Pega aquí el JSON de la carrera..."></textarea>
         </div>
-    </div>
 
-    <div class="card">
-        <h3>🤖 IA DE RECONOCIMIENTO Y CONSEJOS</h3>
-        <div id="ai-status" class="ai-box">Esperando datos para identificar pista...</div>
-    </div>
+        <div class="stat-bar" id="quickStats">
+            <div class="stat"><label>CIRCUITO</label><span id="ui-pista">---</span></div>
+            <div class="stat"><label>TIEMPO VUELTA</label><span id="ui-tiempo">00:00.00</span></div>
+            <div class="stat"><label>VEL. PUNTA</label><span id="ui-vel">0 ST/S</span></div>
+            <div class="stat"><label>OBSTÁCULOS</label><span id="ui-obs" style="color:var(--danger)">0 DETECTADOS</span></div>
+        </div>
 
-    <div class="card full">
-        <h3>🗺️ MAPA TÉRMICO DE TRAYECTORIA</h3>
-        <canvas id="mapCanvas"></canvas>
-    </div>
+        <div class="card">
+            <h3>🗺️ MAPA DE TRAYECTORIA Y RADAR (LIDAR)</h3>
+            <p style="font-size: 11px; color: #666; margin-bottom: 10px;">La línea de color es tu trayectoria. La línea negra exterior representa los obstáculos cercanos detectados por el radar.</p>
+            <div class="map-container">
+                <canvas id="raceMap"></canvas>
+            </div>
+        </div>
 
-    <div class="card full">
-        <h3>📈 ANÁLISIS DE TELEMETRÍA (Velocidad, Acelerador, Giro)</h3>
-        <canvas id="telemetryChart"></canvas>
-    </div>
-
-    <div class="card full">
-        <h3>📁 HISTORIAL DE VUELTAS GUARDADAS</h3>
-        <ul id="historyList" class="history-list"></ul>
-        <button class="btn clear-history-btn" onclick="borrarHistorial()">BORRAR TODO EL HISTORIAL</button>
-    </div>
+        <div class="card">
+            <h3>📈 RENDIMIENTO POR SECTOR (CHECKPOINTS)</h3>
+            <canvas id="telemetryChart" style="height: 200px;"></canvas>
+        </div>
+    </main>
 </div>
 
 <script>
-let database = JSON.parse(localStorage.getItem('race_db')) || [];
-let mainChart = null; // Gráfica principal de telemetría
-let currentMap = null; // Referencia al mapa principal
+// --- MOTOR DE BASE DE DATOS VIRTUAL ---
+let raceDB = JSON.parse(localStorage.getItem('ultralytics_v2')) || {};
+let chartInstance = null;
 
-window.onload = actualizarListaUI;
+// Al cargar la página, dibujar el explorador
+window.onload = updateExplorer;
 
-function procesarNuevaVuelta() {
-    let raw = document.getElementById('dataInput').value.trim();
-    const status = document.getElementById('status');
-    status.innerText = ""; // Limpiar estado anterior
+function updateExplorer() {
+    const fs = document.getElementById('fileSystem');
+    fs.innerHTML = "";
+    
+    for (let circuito in raceDB) {
+        let folder = document.createElement('div');
+        folder.className = 'folder';
+        folder.innerHTML = `<div class="folder-title">${circuito.toUpperCase()}</div>`;
+        
+        raceDB[circuito].vueltas.forEach((v, index) => {
+            let link = document.createElement('a');
+            link.className = 'race-link';
+            link.innerHTML = `Vuelta ${index + 1} - ${v.topSpeed.toFixed(1)} ST/S`;
+            link.onclick = () => visualizarVuelta(v.data, circuito, index);
+            folder.appendChild(link);
+        });
+        fs.appendChild(folder);
+    }
+}
+
+// --- PROCESAMIENTO CON IA DE RECONOCIMIENTO ---
+function procesarEntrada() {
+    let raw = document.getElementById('rawInput').value.trim();
+    if(!raw) return;
 
     try {
-        // --- MOTOR DE REPARACIÓN DE EMERGENCIA ---
-        let lastValid = raw.lastIndexOf('}');
-        if (lastValid === -1) throw "Incompleto";
-        raw = raw.substring(0, lastValid + 1);
-        if (!raw.startsWith('[')) raw = '[' + raw;
-        if (!raw.endsWith(']')) raw = raw + ']';
-
         const data = JSON.parse(raw);
-        status.innerText = "✅ Datos procesados con éxito.";
-        status.style.color = "#00ff88";
-
-        renderDashboard(data); // Actualiza los stats y los gráficos principales
-        analizarConIA(data);   // Ejecuta la lógica de la IA
+        const topSpeed = Math.max(...data.map(d => d.speed));
         
-    } catch (e) {
-        status.innerText = "❌ ERROR: Datos corruptos o insuficientes. Copia desde el inicio hasta el final.";
-        status.style.color = "#ff4444";
-        console.error("Error al procesar datos:", e);
-    }
-}
+        // IA: Reconocimiento de Pista por Coordenadas iniciales
+        let startPos = data[0].pos;
+        let nombreCircuito = "Desconocido";
 
-function renderDashboard(data) {
-    // Calcular estadísticas para el panel superior
-    const speeds = data.map(d => d.speed);
-    const gForces = data.map(d => Math.abs(d.deltaV || 0) / 10); // deltaV / (intervalo * g) = g-force
-    const collisionCount = data.filter(d => d.collision || d.deltaV > 12).length;
-    const skidCount = data.filter(d => d.skid || d.lateralSpeed > 6).length;
-    
-    document.getElementById('top-speed').innerText = Math.max(...speeds).toFixed(1) + " ST/S";
-    document.getElementById('max-g').innerText = Math.max(...gForces).toFixed(2) + "G";
-    document.getElementById('samples').innerText = data.length;
-    document.getElementById('collisions').innerText = collisionCount;
-    document.getElementById('skids').innerText = skidCount;
-    document.getElementById('corrections').innerText = (skidCount > 0 || collisionCount > 0) ? "VERIFICAR" : "ÓPTIMO";
-
-
-    drawMap(data, document.getElementById('mapCanvas')); // Mapa principal
-    drawChart(data); // Gráfica principal
-}
-
-function analizarConIA(newData) {
-    const aiStatus = document.getElementById('ai-status');
-    const avgX = newData[0].pos.x; // Usamos el punto de inicio como referencia de pista
-    const avgZ = newData[0].pos.z;
-    const currentTopSpeed = Math.max(...newData.map(d => d.speed));
-    
-    let pistaExistente = database.find(r => Math.abs(r.coords.x - avgX) < 500 && Math.abs(r.coords.z - avgZ) < 500);
-    
-    let nombrePista = pistaExistente ? pistaExistente.nombre : "Pista Nueva " + (database.length + 1);
-    let comparativa = "";
-    let esNuevoRecord = false;
-
-    if (pistaExistente) {
-        let diferencia = currentTopSpeed - pistaExistente.topSpeed;
-        if (diferencia > 0) {
-            comparativa = `<b style="color:#0f8">📈 ¡NUEVO RÉCORD! Eres ${diferencia.toFixed(1)} ST/S más rápido.</b>`;
-            esNuevoRecord = true;
-        } else {
-            comparativa = `<b style="color:#f44">📉 Eres ${Math.abs(diferencia).toFixed(1)} ST/S más lento que tu mejor marca.</b>`;
-        }
-    } else {
-        comparativa = "✨ Primera vez detectada en esta ubicación. Guardando trazado...";
-        esNuevoRecord = true; // Si es pista nueva, es un "récord" inicial
-    }
-
-    // Guardar en la base de datos (solo si es nuevo récord o pista nueva)
-    if (esNuevoRecord) {
-        // Si ya existía un récord para esta pista, lo eliminamos antes de añadir el nuevo
-        if(pistaExistente) {
-            database = database.filter(r => !(Math.abs(r.coords.x - avgX) < 500 && Math.abs(r.coords.z - avgZ) < 500));
-        }
-
-        const nuevaEntrada = {
-            id: Date.now(),
-            nombre: nombrePista,
-            topSpeed: currentTopSpeed,
-            coords: {x: avgX, z: avgZ},
-            fecha: new Date().toLocaleString(),
-            data: newData // Guardamos la telemetría completa
-        };
-        database.push(nuevaEntrada);
-        localStorage.setItem('race_db', JSON.stringify(database));
-    }
-
-    aiStatus.innerHTML = `
-        <b>UBICACIÓN DETECTADA:</b> ${nombrePista}<br>
-        <b>VELOCIDAD PUNTA ACTUAL:</b> ${currentTopSpeed.toFixed(1)} ST/S<br>
-        ${comparativa}<br><br>
-        <i>💡 CONSEJO IA: ${generarConsejo(newData)}</i>
-    `;
-
-    actualizarListaUI(); // Re-renderizar la lista para mostrar la nueva entrada o el record actualizado
-}
-
-function generarConsejo(data) {
-    const collisions = data.filter(d => d.collision).length;
-    const skids = data.filter(d => d.skid).length;
-    
-    if (collisions > 0) {
-        return "Demasiados impactos. Prioriza la trazada limpia para mantener la velocidad.";
-    }
-    if (skids > 15) {
-        return "El coche derrapa mucho. Controla mejor el acelerador o reduce el ángulo de giro.";
-    }
-    const avgThrottle = data.reduce((sum, d) => sum + (d.throttle || 0), 0) / data.length;
-    if (avgThrottle < 0.5) {
-        return "Podrías acelerar más. Mantener el pie a fondo te dará ventaja en las rectas.";
-    }
-    const maxDeltaV = Math.max(...data.map(d => Math.abs(d.deltaV || 0)));
-    if (maxDeltaV < 5 && data.length > 50) { // Si casi no hay aceleración/frenado brusco
-        return "Conducción muy suave. Busca puntos de frenado más agresivos para optimizar el tiempo.";
-    }
-    return "¡Conducción eficiente! Mantén este ritmo y busca pulir cada milésima.";
-}
-
-function actualizarListaUI() {
-    const list = document.getElementById('historyList');
-    list.innerHTML = "";
-    // Ordenar por el último registro (más reciente primero)
-    database.sort((a,b) => b.id - a.id).forEach(race => {
-        const li = document.createElement('li');
-        li.className = "history-item";
-        li.onclick = () => { 
-            renderDashboard(race.data); // Mostrar datos en el panel principal
-            document.getElementById('ai-status').innerHTML = `
-                <b>HISTORIAL:</b> ${race.nombre}<br>
-                <b>VELOCIDAD PUNTA:</b> ${race.topSpeed.toFixed(1)} ST/S<br>
-                <small>Fecha: ${race.fecha}</small><br><br>
-                <i>💡 CONSEJO IA: ${generarConsejo(race.data)}</i>
-            `;
-        };
-
-        const infoDiv = document.createElement('div');
-        infoDiv.className = "history-info";
-        infoDiv.innerHTML = `<b>${race.nombre}</b> - ${race.topSpeed.toFixed(1)} ST/S <br> <small>${race.fecha}</small>`;
-        li.appendChild(infoDiv);
-
-        // Canvas para el minimapa
-        const miniMapCanvas = document.createElement('canvas');
-        miniMapCanvas.className = "history-map";
-        miniMapCanvas.width = 60; // Tamaño fijo para el minimapa
-        miniMapCanvas.height = 40;
-        li.appendChild(miniMapCanvas);
-        
-        list.appendChild(li);
-        drawMap(race.data, miniMapCanvas); // Dibujar en el minimapa
-    });
-}
-
-// Función general para dibujar mapas (ahora acepta cualquier canvas)
-function drawMap(data, targetCanvas) {
-    const ctx = targetCanvas.getContext('2d');
-    
-    // Obtener límites
-    const xs = data.map(d => d.pos.x), zs = data.map(d => d.pos.z);
-    const minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
-    const rangeX = maxX - minX || 1;
-    const rangeZ = maxZ - minZ || 1;
-
-    // Calcular escala para que se ajuste al canvas pequeño
-    const padding = 5;
-    const scale = Math.min((targetCanvas.width - padding*2) / rangeX, (targetCanvas.height - padding*2) / rangeZ);
-
-    ctx.clearRect(0,0,targetCanvas.width,targetCanvas.height);
-    
-    for(let i=1; i<data.length; i++) {
-        const p1 = data[i-1], p2 = data[i];
-        ctx.beginPath();
-        ctx.lineWidth = targetCanvas.width === 60 ? 1 : (p2.collision ? 8 : 4); // Más fino para minimapa
-        
-        // Color por velocidad (Azul -> Rojo)
-        const hue = Math.max(0, 200 - (p2.speed * 1.5));
-        ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
-        
-        // Ajustar coordenadas
-        ctx.moveTo((p1.pos.x-minX)*scale+padding, (p1.pos.z-minZ)*scale+padding);
-        ctx.lineTo((p2.pos.x-minX)*scale+padding, (p2.pos.z-minZ)*scale+padding);
-        ctx.stroke();
-    }
-}
-
-function drawChart(data) {
-    const ctx = document.getElementById('telemetryChart').getContext('2d');
-    if(mainChart) mainChart.destroy();
-
-    mainChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.map(d => d.time.toFixed(1) + "s"),
-            datasets: [
-                { label: 'Velocidad (ST/S)', data: data.map(d => d.speed), borderColor: '#00f2ff', borderWidth: 2, pointRadius: 0 },
-                { label: 'Acelerador (%)', data: data.map(d => (d.throttle || 0) * 100), borderColor: '#00ff88', borderWidth: 1, fill: true, backgroundColor: 'rgba(0,255,136,0.05)', pointRadius: 0 },
-                { label: 'Volante (%)', data: data.map(d => (d.steer || 0) * 100), borderColor: '#ff00ff', borderWidth: 1, pointRadius: 0 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#fff' } } },
-            scales: {
-                y: { grid: { color: '#222' }, ticks: { color: '#888' } },
-                x: { grid: { display: false }, ticks: { color: '#888' } }
+        // Buscamos en la base de datos si alguna pista tiene estas coordenadas
+        for(let key in raceDB) {
+            let ref = raceDB[key].coordenadas;
+            if(Math.abs(ref.x - startPos.x) < 500 && Math.abs(ref.z - startPos.z) < 500) {
+                nombreCircuito = key;
+                break;
             }
         }
-    });
+
+        if(nombreCircuito === "Desconocido") {
+            nombreCircuito = prompt("Nueva pista detectada. ¿Qué nombre quieres darle?", "Circuito " + (Object.keys(raceDB).length + 1));
+            if(!nombreCircuito) nombreCircuito = "Pista Genérica";
+        }
+
+        // Guardar en la estructura de carpetas
+        if(!raceDB[nombreCircuito]) {
+            raceDB[nombreCircuito] = { coordenadas: startPos, vueltas: [] };
+        }
+        
+        raceDB[nombreCircuito].vueltas.push({
+            topSpeed: topSpeed,
+            data: data,
+            fecha: new Date().toLocaleString()
+        });
+
+        localStorage.setItem('ultralytics_v2', JSON.stringify(raceDB));
+        updateExplorer();
+        visualizarVuelta(data, nombreCircuito, raceDB[nombreCircuito].vueltas.length - 1);
+        
+    } catch(e) {
+        alert("Error al leer el JSON. Asegúrate de copiarlo completo.");
+    }
 }
 
-function borrarHistorial() {
-    if(confirm("¿Estás seguro de que quieres borrar TODO el historial de carreras? Esta acción es irreversible.")) {
-        localStorage.removeItem('race_db');
-        database = [];
-        actualizarListaUI();
-        document.getElementById('status').innerText = "Historial borrado.";
-        document.getElementById('status').style.color = "#ff4444";
+// --- RENDERIZADO DE MAPA Y RADAR ---
+function visualizarVuelta(data, circuito, index) {
+    document.getElementById('ui-pista').innerText = circuito;
+    document.getElementById('ui-vel').innerText = Math.max(...data.map(d => d.speed)).toFixed(1) + " ST/S";
+    
+    const canvas = document.getElementById('raceMap');
+    const ctx = canvas.getContext('2d');
+    
+    // Ajustar resolución del canvas
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    const xs = data.map(d => d.pos.x), zs = data.map(d => d.pos.z);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
+    const rangeX = maxX - minX || 1, rangeZ = maxZ - minZ || 1;
+    const scale = Math.min((canvas.width-40)/rangeX, (canvas.height-40)/rangeZ);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Dibujar Trayectoria y Radar
+    for(let i = 1; i < data.length; i++) {
+        let p1 = data[i-1], p2 = data[i];
+        
+        let x1 = (p1.pos.x - minX) * scale + 20;
+        let y1 = (p1.pos.z - minZ) * scale + 20;
+        let x2 = (p2.pos.x - minX) * scale + 20;
+        let y2 = (p2.pos.z - minZ) * scale + 20;
+
+        // 1. Dibujar Radar de Obstáculos (Línea Negra Lateral)
+        if(p2.distancia_obstaculo && p2.distancia_obstaculo < 50) {
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(0,0,0,0.8)";
+            ctx.lineWidth = 2;
+            // Desplazamos la línea negra según la distancia reportada
+            let offset = p2.distancia_obstaculo * 0.5; 
+            ctx.moveTo(x1 + offset, y1 + offset);
+            ctx.lineTo(x2 + offset, y2 + offset);
+            ctx.stroke();
+        }
+
+        // 2. Dibujar Trayectoria de Velocidad
+        ctx.beginPath();
+        let hue = Math.max(0, 200 - (p2.speed * 1.2));
+        ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+        ctx.lineWidth = 4;
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        // 3. Marcar Checkpoints
+        if(p2.isCheckpoint) {
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.arc(x2, y2, 6, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+}
+
+function borrarTodo() {
+    if(confirm("¿Borrar todas las carpetas y vueltas?")) {
+        localStorage.clear();
+        location.reload();
     }
 }
 </script>
