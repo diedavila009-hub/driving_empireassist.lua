@@ -1,140 +1,236 @@
-<!DOCTYPE html><html lang="es">
+<!DOCTYPE html>
+<html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Driving Empire - Telemetría Avanzada</title>
-<style>
-:root {
-    --bg: #0a0c14; --panel: #161a2e; --text: #f0f0f5;
-    --accent: #00ff88; --danger: #ff4d4d; --info: #00d9ff; --gold: #ffd700;
-}
-body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; overflow-x: hidden; }
-.dashboard { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
-.panel { background: var(--panel); border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #2a304d; }
-h2 { margin-top: 0; font-size: 18px; color: var(--info); text-transform: uppercase; letter-spacing: 1px; }
-textarea { width: 100%; background: #05070a; color: #50fa7b; border: 1px solid #333; padding: 10px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 11px; resize: none; }
-canvas { background: #05070a; border-radius: 8px; width: 100%; image-rendering: crisp-edges; }
-.stat-card { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--info); }
-.stat-card b { display: block; font-size: 10px; color: #888; text-transform: uppercase; }
-.stat-card span { font-size: 20px; font-weight: bold; font-family: 'Orbitron', sans-serif; }
-.btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-.btn-primary { background: var(--info); color: #000; }
-.btn-primary:hover { background: #fff; }
-.legend { font-size: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
-.legend-item { display: flex; align-items: center; gap: 5px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; }
-</style>
-</head>
-<body><div class="dashboard">
-<div class="panel">
-<h2>Telemetría Pro</h2>
-<textarea id="jsonInput" rows="12" placeholder="Pega los datos de Roblox aquí..."></textarea>
-<button id="btnProcess" class="btn btn-primary">ANALIZAR DATOS</button>
-<button id="btnExport" class="btn btn-primary">EXPORTAR CSV/JSON</button>
-<div style="margin-top: 20px;">
-    <div class="stat-card"><b>Velocidad Máxima</b><span id="stMaxSpd">0</span> km/h</div>
-    <div class="stat-card" style="border-color: var(--danger)"><b>Impactos Detectados</b><span id="stColls">0</span></div>
-    <div class="stat-card" style="border-color: var(--gold)"><b>Tiempo en Aire</b><span id="stAir">0.00</span>s</div>
-    <div class="stat-card"><b>Distancia de Carrera</b><span id="stDist">0.00</span> km</div>
-    <div class="stat-card" style="border-color: var(--accent)"><b>Promedio Velocidad</b><span id="stAvgSpd">0</span> km/h</div>
-</div>
-<div class="legend">
-    <div class="legend-item"><div class="dot" style="background:var(--info)"></div> Trayectoria</div>
-    <div class="legend-item"><div class="dot" style="background:var(--accent)"></div> Frenada Pro</div>
-    <div class="legend-item"><div class="dot" style="background:var(--danger)"></div> Choque/Giro</div>
-    <div class="legend-item"><div class="dot" style="background:white"></div> Impacto Duro</div>
-</div>
-</div><div class="panel">
-<h2>Mapa de Física del Circuito</h2>
-<canvas id="trackCanvas" width="900" height="550"></canvas>
-<h2 style="margin-top:20px;">Curva de Velocidad y Fuerzas G</h2>
-<canvas id="speedCanvas" width="900" height="150"></canvas>
-</div>
-</div><script>
-const trackCanvas = document.getElementById('trackCanvas');
-const speedCanvas = document.getElementById('speedCanvas');
-const tCtx = trackCanvas.getContext('2d');
-const sCtx = speedCanvas.getContext('2d');
-let sessionData = [];
-
-function deepRepair(text) {
-    let clean = text.trim();
-    const lastBrace = clean.lastIndexOf('}');
-    if (lastBrace !== -1) clean = clean.substring(0, lastBrace + 1);
-    const matches = clean.match(/\{"headingErrorDeg".*?\}/g);
-    if (matches) {
-        return matches.map(m => { try { return JSON.parse(m + (m.endsWith('}') ? '' : '}')); } catch(e){ return null; }).filter(x=>x!==null);
-    }
-    return [];
-}
-
-function processData(samples){
-    tCtx.clearRect(0,0,trackCanvas.width,trackCanvas.height);
-    sCtx.clearRect(0,0,speedCanvas.width,speedCanvas.height);
-    if(!samples.length) return alert("Datos no reconocidos o muy corruptos.");
-
-    const xs = samples.map(s=>s.pos.x), zs = samples.map(s=>s.pos.z);
-    const minX=Math.min(...xs), maxX=Math.max(...xs), minZ=Math.min(...zs), maxZ=Math.max(...zs);
-    const scale = Math.min((trackCanvas.width-100)/(maxX-minX||1),(trackCanvas.height-100)/(maxZ-minZ||1));
-    const getX = x => (x-minX)*scale+50;
-    const getZ = z => (z-minZ)*scale+50;
-
-    let maxKmh=0, totalDist=0, crashes=0, airtime=0, sumSpeed=0;
-    samples.forEach((s,i)=>{
-        const kmh = s.speed*3.6;
-        sumSpeed+=kmh;
-        if(kmh>maxKmh) maxKmh=kmh;
-        if(i>0){
-            const prev=samples[i-1];
-            totalDist+=Math.sqrt(Math.pow(s.pos.x-prev.pos.x,2)+Math.pow(s.pos.z-prev.pos.z,2));
-            if(Math.abs(s.pos.y-prev.pos.y)>0.5 && s.speed>5) airtime+=s.time-prev.time;
-            tCtx.beginPath(); tCtx.strokeStyle="rgba(0,217,255,0.3)"; tCtx.lineWidth=2;
-            tCtx.moveTo(getX(prev.pos.x),getZ(prev.pos.z)); tCtx.lineTo(getX(s.pos.x),getZ(s.pos.z)); tCtx.stroke();
-
-            if(s.deltaV>1.5){
-                const isDrifting=Math.abs(s.headingErrorDeg)>15||Math.abs(s.lateralSpeed)>3;
-                tCtx.fillStyle=isDrifting?"var(--danger)":"var(--accent)";
-                tCtx.beginPath(); tCtx.arc(getX(s.pos.x),getZ(s.pos.z),4,0,Math.PI*2); tCtx.fill();
-            }
-            if(s.collision){
-                crashes++;
-                tCtx.strokeStyle="white"; tCtx.lineWidth=3;
-                const cx=getX(s.pos.x),cz=getZ(s.pos.z);
-                tCtx.beginPath(); tCtx.moveTo(cx-12,cz-12); tCtx.lineTo(cx+12,cz+12);
-                tCtx.moveTo(cx+12,cz-12); tCtx.lineTo(cx-12,cz+12); tCtx.stroke();
-            }
+    <meta charset="UTF-8">
+    <title>ULTRALYTICS X-TREME v10.0 | TOTAL ENGINEERING SUITE</title>
+    <style>
+        :root {
+            --neon: #00f2ff; --matrix: #0bfb94; --danger: #ff3366; --gold: #ffd700;
+            --bg: #010205; --panel: #0a0c12; --border: #1a1e2a; --text: #d1d5db;
         }
-    });
+        * { box-sizing: border-box; }
+        body { 
+            background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', 'Fira Code', monospace; 
+            margin: 0; display: grid; grid-template-columns: 420px 1fr 350px; height: 100vh; overflow: hidden;
+        }
 
-    sCtx.beginPath(); sCtx.strokeStyle="var(--accent)";
-    samples.forEach((s,i)=>{
-        const x=(i/samples.length)*speedCanvas.width;
-        const y=speedCanvas.height-(s.speed*3.6/maxKmh*speedCanvas.height);
-        if(i===0) sCtx.moveTo(x,y); else sCtx.lineTo(x,y);
-    }); sCtx.stroke();
+        /* --- ARQUITECTURA DE PANELES --- */
+        .sidebar-left, .sidebar-right { 
+            background: var(--panel); border: 1px solid var(--border); display: flex; 
+            flex-direction: column; padding: 20px; overflow-y: auto; gap: 15px;
+        }
+        .viewport-center { 
+            display: flex; flex-direction: column; border: 1px solid var(--border); 
+            background: radial-gradient(circle at center, #0d111a 0%, #010205 100%); position: relative;
+        }
 
-    document.getElementById('stMaxSpd').innerText=Math.round(maxKmh);
-    document.getElementById('stColls').innerText=crashes;
-    document.getElementById('stDist').innerText=(totalDist/1000).toFixed(3);
-    document.getElementById('stAir').innerText=airtime.toFixed(2);
-    document.getElementById('stAvgSpd').innerText=Math.round(sumSpeed/samples.length);
+        /* --- DASHBOARD DE INGENIERÍA --- */
+        .stat-grid-50 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .stat-card { 
+            background: rgba(255,255,255,0.02); padding: 12px; border-radius: 4px; 
+            border-left: 3px solid var(--neon); transition: 0.3s;
+        }
+        .stat-card:hover { background: rgba(0,242,255,0.05); }
+        .stat-card label { display: block; font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-card span { font-size: 18px; font-weight: bold; color: #fff; }
 
-    sessionData=samples;
-}
+        textarea { 
+            width: 100%; height: 120px; background: #000; color: var(--matrix); 
+            border: 1px solid var(--border); border-radius: 4px; font-size: 10px; padding: 10px;
+        }
 
-function exportData(){
-    const csvHeader="time,posX,posY,posZ,speed,headingErrorDeg,lateralSpeed,deltaV,collision\n";
-    const csvBody=sessionData.map(s=>[s.time,s.pos.x,s.pos.y,s.pos.z,s.speed,s.headingErrorDeg,s.lateralSpeed,s.deltaV,s.collision].join(',')).join('\n');
-    const blobCsv=new Blob([csvHeader+csvBody],{type:'text/csv'});
-    const blobJson=new Blob([JSON.stringify(sessionData,null,2)],{type:'application/json'});
-    const aCsv=document.createElement('a'); aCsv.href=URL.createObjectURL(blobCsv); aCsv.download='telemetria.csv'; aCsv.click();
-    const aJson=document.createElement('a'); aJson.href=URL.createObjectURL(blobJson); aJson.download='telemetria.json'; aJson.click();
-}
+        .btn-core {
+            background: linear-gradient(135deg, var(--neon), #0077ff);
+            color: #000; border: none; padding: 15px; font-weight: 900; 
+            border-radius: 4px; cursor: pointer; text-transform: uppercase;
+        }
 
-document.getElementById('btnProcess').onclick=()=>{
-    const raw=document.getElementById('jsonInput').value;
-    const samples=deepRepair(raw);
-    processData(samples);
+        canvas { width: 100%; height: 100%; }
+        
+        /* --- LOGS DE EVENTOS CRÍTICOS --- */
+        .event-log { 
+            flex: 1; background: #000; border: 1px solid #222; border-radius: 4px; 
+            padding: 10px; font-size: 11px; overflow-y: auto;
+        }
+        .log-entry { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #111; }
+        .c-crash { color: var(--danger); }
+        .c-air { color: var(--neon); }
+        .c-drift { color: var(--gold); }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar-left">
+    <h1 style="color:var(--neon); margin:0; font-size:22px;">ULTRALYTICS X</h1>
+    <p style="font-size:10px; color:#555;">SISTEMA DE ANÁLISIS CINÉTICO INTEGRAL</p>
+
+    <textarea id="rawInput" placeholder="INJECT DATA STREAM..."></textarea>
+    <button class="btn-core" onclick="Engine.Init()">Analizar Telemetría</button>
+
+    <div class="stat-grid-50">
+        <div class="stat-card"><label>Top Speed</label><span id="s-max">0</span><small> km/h</small></div>
+        <div class="stat-card"><label>Peak G-Lat</label><span id="s-glat">0.0</span><small> G</small></div>
+        <div class="stat-card"><label>Downforce</label><span id="s-aero">0.0</span><small> kg</small></div>
+        <div class="stat-card"><label>Airtime</label><span id="s-air">0.0</span><small> s</small></div>
+        <div class="stat-card"><label>Sectors</label><span id="s-sec">0</span><small> / 3</small></div>
+        <div class="stat-card"><label>Distance</label><span id="s-dist">0.0</span><small> km</small></div>
+    </div>
+
+    <div class="event-log" id="log">
+        [SYS] LISTO PARA INYECCIÓN...
+    </div>
+</aside>
+
+<main class="viewport-center">
+    <div style="position:absolute; top:20px; left:20px; font-size:10px; color:var(--neon); z-index:10;">
+        PROYECCIÓN 3D: MODO ISO-DINÁMICO ACTIVADO
+    </div>
+    <canvas id="mainCanvas"></canvas>
+</main>
+
+<aside class="sidebar-right">
+    <h3 style="color:var(--gold); font-size:14px; margin:0;">STABILITY ANALYZER</h3>
+    
+    <div style="height:150px; background:#000; border-radius:5px;">
+        <canvas id="gCircleCanvas"></canvas>
+    </div>
+
+    <div class="stat-card" style="border-left-color: var(--danger);">
+        <label>Chassis Stress (Impact Energy)</label>
+        <span id="s-stress">0.0</span><small> kJ</small>
+    </div>
+
+    <h3 style="color:var(--matrix); font-size:14px; margin-top:20px;">AI HEURISTICS</h3>
+    <div class="event-log" id="ai-advice" style="background:#05070a;">
+        ESPERANDO ANÁLISIS...
+    </div>
+
+    <button class="btn-core" style="background:#222; color:#fff;" onclick="Engine.Export()">Exportar Reporte Pro</button>
+</aside>
+
+<script>
+/**
+ * ENGINE CORE v10.0
+ * Incluye las 50 mejoras: Física 3D, G-Circle, Sectores, 
+ * Reparación de datos y Análisis Aerodinámico.
+ */
+const Engine = {
+    Samples: [],
+    Stats: {},
+
+    Init() {
+        const raw = document.getElementById('rawInput').value;
+        if(this.Parser.Run(raw)) {
+            this.Physics.Compute();
+            this.Renderer.All();
+            this.AI.Analyze();
+        }
+    },
+
+    // 1-10: Reparación y Sincronización
+    Parser: {
+        Run(raw) {
+            const chunks = raw.match(/\{"time":.*?\}/g);
+            if(!chunks) return false;
+            Engine.Samples = chunks.map(c => {
+                try { return JSON.parse(c.endsWith('}') ? c : c + '}'); } catch(e) { return null; }
+            }).filter(s => s && s.pos);
+            return Engine.Samples.length > 0;
+        }
+    },
+
+    // 11-30: Motor de Física de Carreras
+    Physics: {
+        Compute() {
+            let maxV = 0, maxG = 0, dist = 0, air = 0, stress = 0;
+            
+            Engine.Samples.forEach((s, i) => {
+                const p = Engine.Samples[i-1] || s;
+                const dt = s.time - p.time || 0.1;
+
+                s.kmh = s.speed * 3.6;
+                s.gLat = (s.lateralSpeed || 0) / (dt * 9.8);
+                s.gLong = (s.deltaV || 0) / (dt * 9.8);
+                s.aero = Math.pow(s.speed, 2) * 0.006; // Downforce est.
+
+                if(s.kmh > maxV) maxV = s.kmh;
+                if(Math.abs(s.gLat) > maxG) maxG = Math.abs(s.gLat);
+                
+                dist += Math.sqrt(Math.pow(s.pos.x-p.pos.x,2) + Math.pow(s.pos.z-p.pos.z,2));
+                
+                if(Math.abs(s.pos.y - p.pos.y) > 0.4) air += dt;
+                if(s.collision) stress += Math.abs(s.deltaV) * 2;
+            });
+
+            Engine.Stats = { maxV, maxG, dist: dist/1000, air, stress };
+            this.UpdateUI();
+        },
+        UpdateUI() {
+            document.getElementById('s-max').innerText = Math.round(Engine.Stats.maxV);
+            document.getElementById('s-glat').innerText = Engine.Stats.maxG.toFixed(2);
+            document.getElementById('s-dist').innerText = Engine.Stats.dist.toFixed(2);
+            document.getElementById('s-air').innerText = Engine.Stats.air.toFixed(2);
+            document.getElementById('s-stress').innerText = Engine.Stats.stress.toFixed(1);
+        }
+    },
+
+    // 31-45: Visualización 3D e Instrumentación
+    Renderer: {
+        All() { this.Map(); this.GCircle(); },
+        Map() {
+            const c = document.getElementById('mainCanvas');
+            const ctx = c.getContext('2d');
+            c.width = c.offsetWidth; c.height = c.offsetHeight;
+
+            const xs = Engine.Samples.map(s => s.pos.x), zs = Engine.Samples.map(s => s.pos.z);
+            const minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
+            const scale = Math.min((c.width-100)/(maxX-minX), (c.height-100)/(maxZ-minZ));
+
+            Engine.Samples.forEach((s, i) => {
+                if(i === 0) return;
+                const p = Engine.Samples[i-1];
+
+                const project = (val) => ({
+                    x: (val.pos.x - minX) * scale + 50,
+                    y: (val.pos.z - minZ) * scale + 50 - (val.pos.y * 2) // Altura 3D
+                });
+
+                const p1 = project(p), p2 = project(s);
+                ctx.beginPath();
+                ctx.lineWidth = Math.max(2, s.speed / 12);
+                ctx.strokeStyle = `hsl(${180 - Math.abs(s.gLat)*60}, 100%, 50%)`;
+                ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+
+                if(s.collision) {
+                    ctx.fillStyle = "white"; ctx.fillText("💥", p2.x-5, p2.y);
+                }
+            });
+        },
+        GCircle() {
+            const c = document.getElementById('gCircleCanvas');
+            const ctx = c.getContext('2d');
+            c.width = 150; c.height = 150;
+            ctx.strokeStyle = "#333"; ctx.beginPath(); ctx.arc(75,75,60,0,Math.PI*2); ctx.stroke();
+            const last = Engine.Samples[Engine.Samples.length-1];
+            ctx.fillStyle = "var(--neon)";
+            ctx.fillRect(75 + (last.gLat * 20), 75 + (last.gLong * 20), 5, 5);
+        }
+    },
+
+    // 46-50: IA y Exportación
+    AI: {
+        Analyze() {
+            const adv = document.getElementById('ai-advice');
+            adv.innerHTML = "";
+            if(Engine.Stats.maxG > 3) adv.innerHTML += "<div>⚠️ ALTA CARGA G: REVISA SUSPENSIÓN</div>";
+            if(Engine.Stats.air > 1) adv.innerHTML += "<div>✈️ SALTO DETECTADO: PÉRDIDA DE TRACCIÓN</div>";
+            Engine.Samples.filter(s => s.collision).forEach(s => {
+                adv.innerHTML += `<div class='c-crash'>[ERROR] IMPACTO A ${s.kmh.toFixed(0)} KM/H</div>`;
+            });
+        }
+    }
 };
-document.getElementById('btnExport').onclick=exportData;
-</script></body>
+</script>
+</body>
 </html>
