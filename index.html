@@ -2,519 +2,194 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Driving Empire — Race Analyzer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Driving Empire — Race Analyzer Pro</title>
   <style>
     :root {
-      --bg: #0f1222;
-      --panel: #1a1f36;
-      --text: #e6e6f0;
-      --muted: #9aa0aa;
-      --accent: #32a852;
-      --warn: #f0a000;
-      --danger: #e24a4a;
-      --info: #2a84e8;
+      --bg: #0f1222; --panel: #1a1f36; --text: #e6e6f0;
+      --muted: #9aa0aa; --accent: #32a852; --warn: #f0a000;
+      --danger: #e24a4a; --info: #2a84e8;
     }
-    * { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0; padding: 20px; background: var(--bg); color: var(--text);
     }
-    header { margin-bottom: 18px; }
-    h1 { margin: 0 0 8px; font-size: 22px; }
-    p { margin: 0 0 12px; color: var(--muted); }
-    .grid {
-      display: grid; gap: 16px;
-      grid-template-columns: 1fr; 
+    .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    @media (min-width: 1100px) { .grid { grid-template-columns: 350px 1fr; } }
+    .panel { background: var(--panel); border-radius: 12px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+    textarea { 
+      width: 100%; background: #0b1026; color: #50fa7b; border: 1px solid #2a3457; 
+      border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; resize: vertical;
     }
-    @media (min-width: 980px) {
-      .grid { grid-template-columns: 320px 1fr; }
+    button { 
+      width: 100%; cursor: pointer; padding: 12px; border-radius: 8px; border: none; 
+      font-weight: bold; margin-top: 8px; transition: 0.2s;
     }
-    .panel {
-      background: var(--panel);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-    }
-    .panel h3 { margin: 0 0 10px; font-size: 16px; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; }
-    input[type="file"], textarea, select, button {
-      width: 100%;
-      background: #0e1328; color: var(--text);
-      border: 1px solid #2a3457; border-radius: 8px;
-      padding: 10px; font-size: 14px;
-    }
-    button {
-      cursor: pointer; background: #1e2a4f; border-color: #2e4fa2;
-    }
-    button.primary { background: var(--info); border-color: #1b63b5; color: #fff; }
-    button.danger { background: var(--danger); border-color: #b53232; color: #fff; }
-    .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(2, 1fr); }
+    .primary { background: var(--info); color: white; }
+    .primary:hover { background: #1b63b5; }
+    .danger { background: #3d1414; color: var(--danger); border: 1px solid var(--danger); }
+    .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(2, 1fr); margin-top: 10px; }
     .stat { background: #101633; border: 1px solid #213066; border-radius: 8px; padding: 8px; }
-    .stat b { display: block; font-size: 12px; color: var(--muted); }
-    .stat span { font-size: 16px; }
-    canvas { width: 100%; height: auto; border-radius: 10px; background: #0b1026; }
-    .list { display: grid; gap: 6px; }
-    .item {
-      background: #11183a; border: 1px solid #203367;
-      border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center;
-    }
-    .item small { color: var(--muted); }
-    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
-    .badge {
-      font-size: 12px; padding: 4px 8px; border-radius: 999px; background: #15204a; border: 1px solid #28427c; color: #c9d7ff;
-    }
-    .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
-    .legend span { font-size: 12px; color: var(--muted); }
-    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-    .dot.blue { background: #2a84e8; }
-    .dot.green { background: #32a852; }
-    .dot.yellow { background: #f0a000; }
-    .dot.red { background: #e24a4a; }
-    .dot.white { background: #f5f5f5; }
-    .hr { height: 1px; background: #223159; margin: 12px 0; }
-    .muted { color: var(--muted); }
+    .stat b { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .stat span { font-size: 16px; font-weight: bold; }
+    canvas { width: 100%; background: #0b1026; border-radius: 10px; margin-top: 10px; display: block; }
+    .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Driving Empire — Race Analyzer</h1>
-    <p>Subí/pegá el JSON de cada carrera, visualizá el trazado, métricas y ordená por mejor tiempo.</p>
-  </header>
 
-  <div class="grid">
-    <!-- LADO IZQUIERDO: Controles y ranking -->
-    <div class="panel">
-      <h3>Cargar datos</h3>
-      <div class="row">
-        <input type="file" id="fileInput" accept=".json" />
-        <button class="primary" id="btnFile">Cargar archivo</button>
-      </div>
-      <div class="hr"></div>
-      <h3>Pegar JSON</h3>
-      <textarea id="jsonInput" rows="8" placeholder='Pega el JSON aquí. Ejemplo:
-[
-  {"time":0.00,"pos":{"x":0,"y":0,"z":0},"speed":10,"throttle":0.5,"steer":0.0,"collision":false,"skid":false},
-  {"time":0.10,"pos":{"x":1,"y":0,"z":0.2},"speed":12,"throttle":0.6,"steer":0.1,"collision":false,"skid":false}
-]'></textarea>
-      <div class="row">
-        <button class="primary" id="btnText">Cargar desde texto</button>
-        <button class="danger" id="btnClear">Vaciar carreras</button>
-      </div>
+<header style="margin-bottom: 20px;">
+  <h1 style="margin:0; color: var(--info);">Race Analyzer Pro <span style="font-size: 12px; color: var(--accent);">v2.0 Metric</span></h1>
+  <p style="margin:5px 0; color: var(--muted);">Análisis de frenada en tiempo real • Conversión a KM/H • Auto-Reparación de JSON</p>
+</header>
 
-      <div class="hr"></div>
-      <h3>Ranking de mejores tiempos</h3>
-      <div id="ranking" class="list"></div>
-
-      <div class="hr"></div>
-      <h3>Exportar</h3>
-      <div class="row">
-        <button id="btnExportCsv">Exportar CSV (lap seleccionada)</button>
-        <button id="btnExportPngTrack">Guardar PNG del trazado</button>
-        <button id="btnExportPngSpeed">Guardar PNG del gráfico</button>
-      </div>
-    </div>
-
-    <!-- LADO DERECHO: Visualizaciones y métricas -->
-    <div class="panel">
-      <h3>Recorrido</h3>
-      <canvas id="raceCanvas" width="900" height="600"></canvas>
-      <div class="legend">
-        <span><span class="dot blue"></span>Ruta</span>
-        <span><span class="dot red"></span>Colisión</span>
-        <span><span class="dot yellow"></span>Skid</span>
-        <span><span class="dot white"></span>Inicio/Fin</span>
-      </div>
-
-      <div class="hr"></div>
-
-      <h3>Velocidad vs tiempo</h3>
-      <canvas id="speedCanvas" width="900" height="300"></canvas>
-
-      <div class="hr"></div>
-
-      <h3>Aceleración vs tiempo</h3>
-      <canvas id="throttleCanvas" width="900" height="300"></canvas>
-
-      <div class="hr"></div>
-
-      <h3>Estadísticas del lap seleccionado</h3>
-      <div id="stats" class="stat-grid">
-        <div class="stat"><b>Duración</b><span id="stDuration">—</span></div>
-        <div class="stat"><b>Distancia</b><span id="stDistance">—</span></div>
-        <div class="stat"><b>Vel. promedio</b><span id="stAvgSpeed">—</span></div>
-        <div class="stat"><b>Vel. máxima</b><span id="stMaxSpeed">—</span></div>
-        <div class="stat"><b>Acel. promedio</b><span id="stAvgThrottle">—</span></div>
-        <div class="stat"><b>Steer promedio</b><span id="stAvgSteer">—</span></div>
-        <div class="stat"><b>Colisiones</b><span id="stCollisions">—</span></div>
-        <div class="stat"><b>Skids</b><span id="stSkids">—</span></div>
-      </div>
-
-      <div class="hr"></div>
-
-      <h3>Lista de carreras</h3>
-      <select id="lapSelect"></select>
-      <div class="muted" style="margin-top:8px;">Seleccioná una carrera para ver sus métricas y gráficos.</div>
+<div class="grid">
+  <div class="panel">
+    <h3>Entrada de Telemetría</h3>
+    <textarea id="jsonInput" rows="15" placeholder="Pega el JSON de Roblox aquí... (Acepta bloques cortados)"></textarea>
+    <button class="primary" id="btnProcess">Procesar / Combinar Datos</button>
+    <button class="danger" id="btnClear" style="margin-top:20px;">Borrar Sesión</button>
+    
+    <div class="stat-grid">
+      <div class="stat"><b>Distancia</b><span id="stDist">0.00 km</span></div>
+      <div class="stat"><b>V. Máx</b><span id="stMaxSpeed">0 km/h</span></div>
+      <div class="stat"><b>Tiempo</b><span id="stDuration">0.0s</span></div>
+      <div class="stat"><b>Muestras</b><span id="stCount">0</span></div>
     </div>
   </div>
 
-  <script>
-    // ============ Estado global ============
-    const state = {
-      laps: [],           // [{ id, name, data, stats }]
-      selectedIndex: -1,  // índice del lap activo
-      nextId: 1
-    };
+  <div class="panel">
+    <h3>Trazado de Pista (GPS)</h3>
+    <canvas id="trackCanvas" width="900" height="450"></canvas>
+    
+    <div class="legend">
+      <span><span class="dot" style="background:var(--info)"></span> Trayectoria</span>
+      <span><span class="dot" style="background:var(--accent)"></span> Frenado OK</span>
+      <span><span class="dot" style="background:var(--danger)"></span> Frenado con Giro</span>
+    </div>
 
-    // ============ Utilidades generales ============
-    const isNumber = (v) => typeof v === 'number' && Number.isFinite(v);
+    <h3 style="margin-top:25px;">Curva de Velocidad (km/h)</h3>
+    <canvas id="speedCanvas" width="900" height="180"></canvas>
+  </div>
+</div>
 
-    function safeParse(jsonText) {
-      try { return JSON.parse(jsonText); } catch (e) { throw new Error("JSON inválido: " + e.message); }
-    }
+<script>
+  let state = { lapData: [] };
 
-    function normalizeData(input) {
-      // Aceptar formato: array directo o {samples:[...]} o {data:[...]}
-      let samples = Array.isArray(input) ? input
-                 : Array.isArray(input?.samples) ? input.samples
-                 : Array.isArray(input?.data) ? input.data
-                 : null;
-      if (!samples) throw new Error("No se encontró un array de muestras (usa [], o keys 'samples'/'data').");
+  function repairJson(text) {
+    let raw = text.trim();
+    // Limpiar basura al final
+    const lastBrace = raw.lastIndexOf('}');
+    if (lastBrace !== -1) raw = raw.substring(0, lastBrace + 1);
 
-      // Filtrar y ordenar por tiempo
-      samples = samples
-        .filter(s => s && isNumber(s.time) && s.pos && isNumber(s.pos.x) && isNumber(s.pos.z))
-        .sort((a,b) => a.time - b.time);
-
-      // Deduplicar por tiempo
-      const dedup = [];
-      let lastTime = null;
-      for (const s of samples) {
-        if (lastTime === null || s.time !== lastTime) { dedup.push(s); lastTime = s.time; }
+    // Balancear cierres
+    const stack = [];
+    for (let char of raw) {
+      if (char === '{' || char === '[') stack.push(char === '{' ? '}' : ']');
+      else if (char === '}' || char === ']') {
+        if (stack.length > 0 && stack[stack.length - 1] === char) stack.pop();
       }
-      if (dedup.length < 2) throw new Error("Datos insuficientes para graficar (mínimo 2 muestras).");
-
-      return dedup;
     }
+    while (stack.length > 0) raw += stack.pop();
 
-    function computeStats(samples) {
-      const start = samples[0].time;
-      const end = samples[samples.length - 1].time;
-      const duration = end - start;
-
-      let distance = 0;
-      let maxSpeed = -Infinity;
-      let sumSpeed = 0;
-      let sumThrottle = 0;
-      let sumSteer = 0;
-      let collisions = 0;
-      let skids = 0;
-
-      for (let i = 0; i < samples.length; i++) {
-        const s = samples[i];
-        const spd = isNumber(s.speed) ? s.speed : 0;
-        const thr = isNumber(s.throttle) ? s.throttle : 0;
-        const str = isNumber(s.steer) ? s.steer : 0;
-
-        sumSpeed += spd;
-        sumThrottle += thr;
-        sumSteer += str;
-        if (spd > maxSpeed) maxSpeed = spd;
-        if (s.collision) collisions++;
-        if (s.skid) skids++;
-
-        if (i > 0) {
-          const prev = samples[i - 1];
-          const dx = s.pos.x - prev.pos.x;
-          const dz = s.pos.z - prev.pos.z;
-          distance += Math.hypot(dx, dz);
-        }
-      }
-
-      const avgSpeed = sumSpeed / samples.length;
-      const avgThrottle = sumThrottle / samples.length;
-      const avgSteer = sumSteer / samples.length;
-
-      return { duration, distance, maxSpeed, avgSpeed, avgThrottle, avgSteer, collisions, skids, count: samples.length };
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed.samples || parsed.data || (Array.isArray(parsed) ? parsed : []);
+    } catch (e) {
+      const matches = raw.match(/\{"time".*?\}/g);
+      return matches ? matches.map(m => JSON.parse(m)) : [];
     }
+  }
 
-    function addLap(raw) {
-      const data = normalizeData(raw);
-      const stats = computeStats(data);
-      const id = state.nextId++;
-      const name = `Lap #${id} — ${stats.duration.toFixed(2)}s`;
+  function drawSpeedGraph(samples) {
+    const canvas = document.getElementById('speedCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    
+    const maxSpd = Math.max(...samples.map(s => s.speed * 3.6)) || 100;
+    const pad = 20;
 
-      state.laps.push({ id, name, data, stats });
-      // Seleccionar último cargado
-      state.selectedIndex = state.laps.length - 1;
+    ctx.beginPath();
+    ctx.strokeStyle = "#50fa7b";
+    ctx.lineWidth = 2;
+    
+    samples.forEach((s, i) => {
+      const x = (i / samples.length) * (canvas.width - pad * 2) + pad;
+      const y = canvas.height - ((s.speed * 3.6) / maxSpd * (canvas.height - pad * 2)) - pad;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
 
-      refreshLapSelect();
-      refreshRanking();
-      renderActiveLap();
-    }
+  function renderTrack() {
+    if (state.lapData.length === 0) return;
+    const samples = state.lapData;
+    const canvas = document.getElementById('trackCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    // ============ Render del trazado ============
-    function computeBounds(samples) {
-      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-      for (const s of samples) {
-        if (s.pos.x < minX) minX = s.pos.x;
-        if (s.pos.x > maxX) maxX = s.pos.x;
-        if (s.pos.z < minZ) minZ = s.pos.z;
-        if (s.pos.z > maxZ) maxZ = s.pos.z;
-      }
-      return { minX, maxX, minZ, maxZ };
-    }
+    const xs = samples.map(s => s.pos.x), zs = samples.map(s => s.pos.z);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+    const scale = Math.min((canvas.width-60)/(maxX-minX || 1), (canvas.height-60)/(maxZ-minZ || 1));
 
-    function drawTrack(samples) {
-      const canvas = document.getElementById('raceCanvas');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+    const getX = (x) => (x - minX) * scale + 30;
+    const getZ = (z) => (z - minZ) * scale + 30;
 
-      const bounds = computeBounds(samples);
-      const pad = 30;
-      const worldW = bounds.maxX - bounds.minX || 1;
-      const worldH = bounds.maxZ - bounds.minZ || 1;
+    // Línea de trayectoria
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(42, 132, 232, 0.5)";
+    ctx.lineWidth = 3;
+    samples.forEach((s, i) => {
+      if (i === 0) ctx.moveTo(getX(s.pos.x), getZ(s.pos.z));
+      else ctx.lineTo(getX(s.pos.x), getZ(s.pos.z));
+    });
+    ctx.stroke();
 
-      const sx = (canvas.width - pad*2) / worldW;
-      const sy = (canvas.height - pad*2) / worldH;
-      const scale = Math.min(sx, sy);
+    // Puntos de frenada
+    let totalDist = 0;
+    let maxSpeedKmh = 0;
+    samples.forEach((s, i) => {
+      const speedKmh = s.speed * 3.6;
+      if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh;
+      
+      if (i > 0) {
+        const prev = samples[i-1];
+        const d = Math.sqrt(Math.pow(s.pos.x-prev.pos.x,2)+Math.pow(s.pos.z-prev.pos.z,2));
+        totalDist += d;
 
-      const offX = pad - bounds.minX * scale;
-      const offY = pad - bounds.minZ * scale;
-
-      function mapX(x) { return offX + x * scale; }
-      function mapY(z) { return offY + z * scale; }
-
-      // Ruta
-      ctx.beginPath();
-      for (let i = 0; i < samples.length; i++) {
-        const s = samples[i];
-        const x = mapX(s.pos.x);
-        const y = mapY(s.pos.z);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = '#2a84e8';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Inicio/Fin
-      const start = samples[0], end = samples[samples.length - 1];
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath(); ctx.arc(mapX(start.pos.x), mapY(start.pos.z), 5, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath(); ctx.arc(mapX(end.pos.x), mapY(end.pos.z), 5, 0, Math.PI*2); ctx.fill();
-
-      // Colisiones
-      ctx.fillStyle = '#e24a4a';
-      for (const s of samples) {
-        if (s.collision) {
-          ctx.beginPath(); ctx.arc(mapX(s.pos.x), mapY(s.pos.z), 4, 0, Math.PI*2); ctx.fill();
-        }
-      }
-
-      // Skid markers (pequeños segmentos)
-      ctx.strokeStyle = '#f0a000';
-      ctx.lineWidth = 2;
-      for (let i = 1; i < samples.length; i++) {
-        const a = samples[i-1], b = samples[i];
-        if (b.skid) {
+        if (speedKmh < (prev.speed * 3.6) - 1.5) { // Frenando
+          ctx.fillStyle = Math.abs(s.steer || 0) > 0.3 ? "var(--danger)" : "var(--accent)";
           ctx.beginPath();
-          ctx.moveTo(mapX(a.pos.x), mapY(a.pos.z));
-          ctx.lineTo(mapX(b.pos.x), mapY(b.pos.z));
-          ctx.stroke();
+          ctx.arc(getX(s.pos.x), getZ(s.pos.z), 3, 0, Math.PI*2);
+          ctx.fill();
         }
       }
-    }
-
-    // ============ Gráficos (velocidad, aceleración) ============
-    function drawLineGraph(canvasId, samples, xField, yField, color, yLabel) {
-      const canvas = document.getElementById(canvasId);
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-
-      // Preparar rangos
-      const xs = samples.map(s => s[xField]);
-      const ys = samples.map(s => isNumber(s[yField]) ? s[yField] : 0);
-
-      const minX = Math.min(...xs), maxX = Math.max(...xs);
-      const minY = Math.min(...ys), maxY = Math.max(...ys);
-      const pad = 30;
-      const plotW = canvas.width - pad*2;
-      const plotH = canvas.height - pad*2;
-
-      function mapX(x) {
-        return pad + (plotW * (x - minX)) / ((maxX - minX) || 1);
-      }
-      function mapY(y) {
-        return pad + plotH - (plotH * (y - minY)) / ((maxY - minY) || 1);
-      }
-
-      // Grid y ejes
-      ctx.strokeStyle = '#223159';
-      ctx.lineWidth = 1;
-      for (let i = 0; i <= 4; i++) {
-        const gx = pad + (plotW * i) / 4;
-        ctx.beginPath(); ctx.moveTo(gx, pad); ctx.lineTo(gx, pad + plotH); ctx.stroke();
-      }
-      for (let i = 0; i <= 4; i++) {
-        const gy = pad + (plotH * i) / 4;
-        ctx.beginPath(); ctx.moveTo(pad, gy); ctx.lineTo(pad + plotW, gy); ctx.stroke();
-      }
-
-      // Línea
-      ctx.beginPath();
-      for (let i = 0; i < samples.length; i++) {
-        const x = mapX(xs[i]);
-        const y = mapY(ys[i]);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Etiquetas simples
-      ctx.fillStyle = '#cfd8ff';
-      ctx.font = '12px system-ui';
-      ctx.fillText(`${yLabel} (min: ${minY.toFixed(2)}, max: ${maxY.toFixed(2)})`, pad, 18);
-      ctx.fillText(`Tiempo (s)`, canvas.width - pad - 70, canvas.height - 8);
-    }
-
-    // ============ UI: stats, ranking, select ============
-    function renderStats(stats) {
-      document.getElementById('stDuration').textContent = `${stats.duration.toFixed(2)} s`;
-      document.getElementById('stDistance').textContent = `${stats.distance.toFixed(2)} u`;
-      document.getElementById('stAvgSpeed').textContent = `${stats.avgSpeed.toFixed(2)}`;
-      document.getElementById('stMaxSpeed').textContent = `${stats.maxSpeed.toFixed(2)}`;
-      document.getElementById('stAvgThrottle').textContent = `${stats.avgThrottle.toFixed(3)}`;
-      document.getElementById('stAvgSteer').textContent = `${stats.avgSteer.toFixed(3)}`;
-      document.getElementById('stCollisions').textContent = `${stats.collisions}`;
-      document.getElementById('stSkids').textContent = `${stats.skids}`;
-    }
-
-    function refreshRanking() {
-      const ranking = document.getElementById('ranking');
-      ranking.innerHTML = '';
-      const sorted = [...state.laps].sort((a,b) => a.stats.duration - b.stats.duration);
-      sorted.forEach((lap, i) => {
-        const div = document.createElement('div');
-        div.className = 'item';
-        div.innerHTML = `
-          <div>
-            <strong>#${i+1}</strong> ${lap.name}
-            <div class="badges">
-              <span class="badge">Tiempo: ${lap.stats.duration.toFixed(2)}s</span>
-              <span class="badge">Vel prom: ${lap.stats.avgSpeed.toFixed(2)}</span>
-              <span class="badge">Vel máx: ${lap.stats.maxSpeed.toFixed(2)}</span>
-              <span class="badge">Cols: ${lap.stats.collisions}</span>
-            </div>
-          </div>
-          <small class="muted">${lap.data.length} muestras</small>
-        `;
-        ranking.appendChild(div);
-      });
-    }
-
-    function refreshLapSelect() {
-      const sel = document.getElementById('lapSelect');
-      sel.innerHTML = '';
-      state.laps.forEach((lap, idx) => {
-        const opt = document.createElement('option');
-        opt.value = String(idx);
-        opt.textContent = lap.name;
-        sel.appendChild(opt);
-      });
-      if (state.selectedIndex >= 0) sel.value = String(state.selectedIndex);
-    }
-
-    function renderActiveLap() {
-      if (state.selectedIndex < 0 || !state.laps[state.selectedIndex]) return;
-      const lap = state.laps[state.selectedIndex];
-
-      // Trazado
-      drawTrack(lap.data);
-      // Gráficos
-      drawLineGraph('speedCanvas', lap.data, 'time', 'speed', '#e24a4a', 'Velocidad');
-      drawLineGraph('throttleCanvas', lap.data, 'time', 'throttle', '#32a852', 'Aceleración');
-
-      // Stats
-      renderStats(lap.stats);
-    }
-
-    // ============ Exportaciones ============
-    function exportCsvCurrentLap() {
-      if (state.selectedIndex < 0) return alert('No hay lap seleccionado.');
-      const lap = state.laps[state.selectedIndex];
-      const headers = ['time','pos.x','pos.y','pos.z','speed','throttle','steer','collision','skid'];
-      const rows = lap.data.map(s => [
-        s.time,
-        s.pos?.x ?? '',
-        s.pos?.y ?? '',
-        s.pos?.z ?? '',
-        s.speed ?? '',
-        s.throttle ?? '',
-        s.steer ?? '',
-        s.collision ? 1 : 0,
-        s.skid ? 1 : 0
-      ]);
-      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `lap_${lap.id}.csv`; a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function exportCanvasPng(canvasId, filename) {
-      const canvas = document.getElementById(canvasId);
-      const url = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-    }
-
-    // ============ Eventos UI ============
-    document.getElementById('btnFile').addEventListener('click', () => {
-      const input = document.getElementById('fileInput');
-      if (!input.files || input.files.length === 0) return alert('Seleccioná un archivo .json');
-      const file = input.files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try { addLap(safeParse(e.target.result)); }
-        catch (err) { alert(err.message); }
-      };
-      reader.readAsText(file);
     });
 
-    document.getElementById('btnText').addEventListener('click', () => {
-      const txt = document.getElementById('jsonInput').value.trim();
-      if (!txt) return alert('Pegá el contenido JSON primero.');
-      try { addLap(safeParse(txt)); }
-      catch (err) { alert(err.message); }
-    });
+    document.getElementById('stDist').innerText = (totalDist / 1000).toFixed(3) + " km";
+    document.getElementById('stMaxSpeed').innerText = maxSpeedKmh.toFixed(0) + " km/h";
+    document.getElementById('stDuration').innerText = samples[samples.length-1].time.toFixed(1) + "s";
+    document.getElementById('stCount').innerText = samples.length;
+    
+    drawSpeedGraph(samples);
+  }
 
-    document.getElementById('btnClear').addEventListener('click', () => {
-      if (!confirm('¿Vaciar todas las carreras?')) return;
-      state.laps = []; state.selectedIndex = -1; state.nextId = 1;
-      refreshLapSelect(); refreshRanking();
-      // Limpiar visuales
-      ['raceCanvas','speedCanvas','throttleCanvas'].forEach(id => {
-        const c = document.getElementById(id); c.getContext('2d').clearRect(0,0,c.width,c.height);
-      });
-      renderStats({ duration:0, distance:0, avgSpeed:0, maxSpeed:0, avgThrottle:0, avgSteer:0, collisions:0, skids:0 });
-    });
+  document.getElementById('btnProcess').onclick = () => {
+    const raw = document.getElementById('jsonInput').value;
+    const newPoints = repairJson(raw);
+    if (newPoints.length > 0) {
+      state.lapData.push(...newPoints);
+      renderTrack();
+      document.getElementById('jsonInput').value = "";
+    } else {
+      alert("No se detectaron datos válidos.");
+    }
+  };
 
-    document.getElementById('lapSelect').addEventListener('change', (e) => {
-      const idx = Number(e.target.value);
-      if (Number.isInteger(idx)) { state.selectedIndex = idx; renderActiveLap(); }
-    });
-
-    document.getElementById('btnExportCsv').addEventListener('click', exportCsvCurrentLap);
-    document.getElementById('btnExportPngTrack').addEventListener('click', () => exportCanvasPng('raceCanvas', 'track.png'));
-    document.getElementById('btnExportPngSpeed').addEventListener('click', () => exportCanvasPng('speedCanvas', 'speed.png'));
-
-    // Render inicial vacío
-    refreshLapSelect(); refreshRanking();
-  </script>
+  document.getElementById('btnClear').onclick = () => {
+    if(confirm("¿Borrar todos los datos actuales?")) location.reload();
+  };
+</script>
 </body>
 </html>
