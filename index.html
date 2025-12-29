@@ -2,222 +2,172 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>ULTRALYTICS AI - SISTEMA DE GESTIÓN DE CARRERAS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTRALYTICS AI - DASHBOARD PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --neon: #00f2ff; --bg: #050505; --card: #111; --danger: #ff4444; --success: #00ff88; }
-        body { background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; }
+        :root { --neon: #00f2ff; --bg: #0a0a0a; --card: #151515; --danger: #ff4444; --success: #00ff88; }
+        body { background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
+        .layout { display: flex; flex-direction: column; gap: 15px; max-width: 1000px; margin: auto; }
         
-        .layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; max-width: 1400px; margin: auto; }
+        /* Contenedores */
+        .card { background: var(--card); border: 1px solid #333; border-radius: 10px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; }
         
-        /* Panel Izquierdo: Explorador de Archivos */
-        .explorer { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 15px; height: 85vh; overflow-y: auto; }
-        .folder { margin-bottom: 15px; }
-        .folder-title { font-weight: bold; color: var(--neon); display: flex; align-items: center; cursor: pointer; padding: 5px; border-bottom: 1px solid #222; }
-        .folder-title::before { content: "📁 "; margin-right: 8px; }
-        .race-link { padding: 8px 15px; font-size: 13px; cursor: pointer; border-radius: 5px; transition: 0.2s; display: block; color: #aaa; text-decoration: none; }
-        .race-link:hover { background: #222; color: #fff; }
-        .race-link.active { background: rgba(0, 242, 255, 0.1); color: var(--neon); border-right: 3px solid var(--neon); }
+        /* Stats */
+        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 15px 0; }
+        .stat-box { background: #000; padding: 10px; border-radius: 5px; border-left: 3px solid var(--neon); }
+        .stat-box label { font-size: 10px; color: #888; text-transform: uppercase; }
+        .stat-box div { font-size: 16px; font-weight: bold; color: #fff; }
 
-        /* Panel Derecho: Telemetría */
-        .main-panel { display: flex; flex-direction: column; gap: 20px; }
-        .card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 20px; }
-        
-        .header-ui { display: flex; justify-content: space-between; align-items: center; }
-        textarea { width: 100%; height: 50px; background: #000; border: 1px solid #444; color: var(--success); border-radius: 8px; padding: 10px; margin-top: 10px; resize: none; }
-        
-        .stat-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat { background: #000; padding: 15px; border-radius: 8px; border-bottom: 2px solid var(--neon); text-align: center; }
-        .stat label { font-size: 11px; color: #888; display: block; margin-bottom: 5px; }
-        .stat span { font-size: 18px; font-weight: bold; }
-
-        .map-container { position: relative; width: 100%; height: 400px; background: #000; border-radius: 8px; border: 1px solid #222; }
+        /* Mapa y Gráficas */
+        .map-frame { width: 100%; height: 350px; background: #000; border-radius: 5px; position: relative; overflow: hidden; }
         canvas { width: 100% !important; height: 100% !important; }
-
-        .btn-action { background: var(--neon); color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        
+        textarea { width: 100%; height: 60px; background: #000; border: 1px solid #444; color: var(--success); font-family: monospace; border-radius: 5px; margin-top: 10px; box-sizing: border-box; }
+        .btn { background: var(--neon); color: #000; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
+        
+        .checkpoint-tag { color: var(--success); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="layout">
-    <aside class="explorer">
-        <h3>📂 CARRERAS/</h3>
-        <div id="fileSystem">
-            <p style="font-size: 12px; color: #555;">No hay circuitos guardados.</p>
+    <div class="card">
+        <div class="header">
+            <span style="color: var(--neon); font-weight: bold;">🛰️ TERMINAL DE TELEMETRÍA</span>
+            <button class="btn" style="width: auto; padding: 5px 15px;" onclick="procesarDatos()">ANALIZAR VUELTA</button>
         </div>
-        <button class="btn-action" style="margin-top:20px; width:100%; background:#333; color:#fff;" onclick="borrarTodo()">BORRAR MEMORIA</button>
-    </aside>
+        <textarea id="dataInput" placeholder="Pega aquí los datos de Roblox..."></textarea>
+    </div>
 
-    <main class="main-panel">
-        <div class="card">
-            <div class="header-ui">
-                <h2>🛰️ TERMINAL DE DATOS</h2>
-                <button class="btn-action" onclick="procesarEntrada()">ANALIZAR VUELTA</button>
-            </div>
-            <textarea id="rawInput" placeholder="Pega aquí el JSON de la carrera..."></textarea>
-        </div>
+    <div class="stat-grid">
+        <div class="stat-box"><label>Pista</label><div id="out-pista">---</div></div>
+        <div class="stat-box"><label>Vel. Máxima</label><div id="out-vel">0 ST/S</div></div>
+        <div class="stat-box"><label>Tiempo Est.</label><div id="out-tiempo">00:00.0</div></div>
+        <div class="stat-box" style="border-color: var(--danger);"><label>Obstáculos</label><div id="out-obs">0 Detectados</div></div>
+    </div>
 
-        <div class="stat-bar" id="quickStats">
-            <div class="stat"><label>CIRCUITO</label><span id="ui-pista">---</span></div>
-            <div class="stat"><label>TIEMPO VUELTA</label><span id="ui-tiempo">00:00.00</span></div>
-            <div class="stat"><label>VEL. PUNTA</label><span id="ui-vel">0 ST/S</span></div>
-            <div class="stat"><label>OBSTÁCULOS</label><span id="ui-obs" style="color:var(--danger)">0 DETECTADOS</span></div>
+    <div class="card">
+        <label style="font-size: 12px; color: var(--neon);">🗺️ MAPA DE TRAYECTORIA (LiDAR ACTIVO)</label>
+        <div class="map-frame">
+            <canvas id="mapCanvas"></canvas>
         </div>
+    </div>
 
-        <div class="card">
-            <h3>🗺️ MAPA DE TRAYECTORIA Y RADAR (LIDAR)</h3>
-            <p style="font-size: 11px; color: #666; margin-bottom: 10px;">La línea de color es tu trayectoria. La línea negra exterior representa los obstáculos cercanos detectados por el radar.</p>
-            <div class="map-container">
-                <canvas id="raceMap"></canvas>
-            </div>
+    <div class="card">
+        <label style="font-size: 12px; color: var(--neon);">📊 RENDIMIENTO POR SECTOR Y ALTURA</label>
+        <div style="height: 200px;">
+            <canvas id="chartSectores"></canvas>
         </div>
-
-        <div class="card">
-            <h3>📈 RENDIMIENTO POR SECTOR (CHECKPOINTS)</h3>
-            <canvas id="telemetryChart" style="height: 200px;"></canvas>
-        </div>
-    </main>
+    </div>
 </div>
 
 <script>
-// --- MOTOR DE BASE DE DATOS VIRTUAL ---
-let raceDB = JSON.parse(localStorage.getItem('ultralytics_v2')) || {};
 let chartInstance = null;
 
-// Al cargar la página, dibujar el explorador
-window.onload = updateExplorer;
-
-function updateExplorer() {
-    const fs = document.getElementById('fileSystem');
-    fs.innerHTML = "";
-    
-    for (let circuito in raceDB) {
-        let folder = document.createElement('div');
-        folder.className = 'folder';
-        folder.innerHTML = `<div class="folder-title">${circuito.toUpperCase()}</div>`;
-        
-        raceDB[circuito].vueltas.forEach((v, index) => {
-            let link = document.createElement('a');
-            link.className = 'race-link';
-            link.innerHTML = `Vuelta ${index + 1} - ${v.topSpeed.toFixed(1)} ST/S`;
-            link.onclick = () => visualizarVuelta(v.data, circuito, index);
-            folder.appendChild(link);
-        });
-        fs.appendChild(folder);
-    }
-}
-
-// --- PROCESAMIENTO CON IA DE RECONOCIMIENTO ---
-function procesarEntrada() {
-    let raw = document.getElementById('rawInput').value.trim();
-    if(!raw) return;
-
+function procesarDatos() {
+    const input = document.getElementById('dataInput').value;
     try {
-        const data = JSON.parse(raw);
-        const topSpeed = Math.max(...data.map(d => d.speed));
-        
-        // IA: Reconocimiento de Pista por Coordenadas iniciales
-        let startPos = data[0].pos;
-        let nombreCircuito = "Desconocido";
-
-        // Buscamos en la base de datos si alguna pista tiene estas coordenadas
-        for(let key in raceDB) {
-            let ref = raceDB[key].coordenadas;
-            if(Math.abs(ref.x - startPos.x) < 500 && Math.abs(ref.z - startPos.z) < 500) {
-                nombreCircuito = key;
-                break;
-            }
-        }
-
-        if(nombreCircuito === "Desconocido") {
-            nombreCircuito = prompt("Nueva pista detectada. ¿Qué nombre quieres darle?", "Circuito " + (Object.keys(raceDB).length + 1));
-            if(!nombreCircuito) nombreCircuito = "Pista Genérica";
-        }
-
-        // Guardar en la estructura de carpetas
-        if(!raceDB[nombreCircuito]) {
-            raceDB[nombreCircuito] = { coordenadas: startPos, vueltas: [] };
-        }
-        
-        raceDB[nombreCircuito].vueltas.push({
-            topSpeed: topSpeed,
-            data: data,
-            fecha: new Date().toLocaleString()
-        });
-
-        localStorage.setItem('ultralytics_v2', JSON.stringify(raceDB));
-        updateExplorer();
-        visualizarVuelta(data, nombreCircuito, raceDB[nombreCircuito].vueltas.length - 1);
-        
+        const data = JSON.parse(input);
+        renderizarTodo(data);
     } catch(e) {
-        alert("Error al leer el JSON. Asegúrate de copiarlo completo.");
+        alert("Error: Datos incompletos o mal copiados.");
     }
 }
 
-// --- RENDERIZADO DE MAPA Y RADAR ---
-function visualizarVuelta(data, circuito, index) {
-    document.getElementById('ui-pista').innerText = circuito;
-    document.getElementById('ui-vel').innerText = Math.max(...data.map(d => d.speed)).toFixed(1) + " ST/S";
+function renderizarTodo(data) {
+    // 1. Estadísticas básicas
+    const speeds = data.filter(d => d.speed).map(d => d.speed);
+    document.getElementById('out-vel').innerText = Math.max(...speeds).toFixed(1) + " ST/S";
+    document.getElementById('out-pista').innerText = "Circuito Detectado";
     
-    const canvas = document.getElementById('raceMap');
+    // 2. Dibujar Mapa (LiDAR)
+    const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
-    
-    // Ajustar resolución del canvas
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
+    
+    const points = data.filter(d => d.pos);
+    const xs = points.map(p => p.pos.x);
+    const zs = points.map(p => p.pos.z);
+    
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+    const scale = Math.min((canvas.width-40)/(maxX-minX), (canvas.height-40)/(maxZ-minZ));
 
-    const xs = data.map(d => d.pos.x), zs = data.map(d => d.pos.z);
-    const minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
-    const rangeX = maxX - minX || 1, rangeZ = maxZ - minZ || 1;
-    const scale = Math.min((canvas.width-40)/rangeX, (canvas.height-40)/rangeZ);
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    
+    points.forEach((p, i) => {
+        if(i === 0) return;
+        const p1 = points[i-1];
+        const x1 = (p1.pos.x - minX) * scale + 20;
+        const y1 = (p1.pos.z - minZ) * scale + 20;
+        const x2 = (p.pos.x - minX) * scale + 20;
+        const y2 = (p.pos.z - minZ) * scale + 20;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Dibujar Trayectoria y Radar
-    for(let i = 1; i < data.length; i++) {
-        let p1 = data[i-1], p2 = data[i];
-        
-        let x1 = (p1.pos.x - minX) * scale + 20;
-        let y1 = (p1.pos.z - minZ) * scale + 20;
-        let x2 = (p2.pos.x - minX) * scale + 20;
-        let y2 = (p2.pos.z - minZ) * scale + 20;
-
-        // 1. Dibujar Radar de Obstáculos (Línea Negra Lateral)
-        if(p2.distancia_obstaculo && p2.distancia_obstaculo < 50) {
-            ctx.beginPath();
-            ctx.strokeStyle = "rgba(0,0,0,0.8)";
-            ctx.lineWidth = 2;
-            // Desplazamos la línea negra según la distancia reportada
-            let offset = p2.distancia_obstaculo * 0.5; 
-            ctx.moveTo(x1 + offset, y1 + offset);
-            ctx.lineTo(x2 + offset, y2 + offset);
-            ctx.stroke();
-        }
-
-        // 2. Dibujar Trayectoria de Velocidad
+        // Dibujar rastro de velocidad
         ctx.beginPath();
-        let hue = Math.max(0, 200 - (p2.speed * 1.2));
+        let hue = Math.max(0, 200 - (p.speed * 0.8));
         ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.stroke();
 
-        // 3. Marcar Checkpoints
-        if(p2.isCheckpoint) {
-            ctx.fillStyle = "#fff";
+        // Dibujar Obstáculos (Radar Negro)
+        if(p.distancia_obstaculo < 30) {
             ctx.beginPath();
-            ctx.arc(x2, y2, 6, 0, Math.PI*2);
-            ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.2)";
+            ctx.lineWidth = 1;
+            ctx.arc(x2, y2, p.distancia_obstaculo * scale, 0, Math.PI*2);
+            ctx.stroke();
         }
-    }
-}
 
-function borrarTodo() {
-    if(confirm("¿Borrar todas las carpetas y vueltas?")) {
-        localStorage.clear();
-        location.reload();
-    }
+        // Marcar Checkpoints
+        if(p.isCheckpoint) {
+            ctx.fillStyle = "#fff";
+            ctx.beginPath(); ctx.arc(x2, y2, 5, 0, Math.PI*2); ctx.fill();
+        }
+    });
+
+    // 3. Gráfica de Sectores (Chart.js)
+    if(chartInstance) chartInstance.destroy();
+    const chartCtx = document.getElementById('chartSectores').getContext('2d');
+    
+    chartInstance = new Chart(chartCtx, {
+        type: 'line',
+        data: {
+            labels: points.map(p => p.time.toFixed(1) + "s"),
+            datasets: [{
+                label: 'Velocidad',
+                data: points.map(p => p.speed),
+                borderColor: '#00f2ff',
+                borderWidth: 2,
+                fill: true,
+                backgroundColor: 'rgba(0, 242, 255, 0.1)',
+                pointRadius: 0
+            },
+            {
+                label: 'Altura (Montaña)',
+                data: points.map(p => p.pos.y),
+                borderColor: '#ff00ff',
+                borderWidth: 1,
+                yAxisID: 'y1',
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { display: true, grid: { color: '#222' } },
+                y1: { display: false, position: 'right' },
+                x: { display: false }
+            },
+            plugins: { legend: { labels: { color: '#fff', font: { size: 10 } } } }
+        }
+    });
 }
 </script>
 </body>
