@@ -2,235 +2,136 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>ULTRALYTICS X-TREME v10.0 | TOTAL ENGINEERING SUITE</title>
+    <title>ULTRALYTICS X - ANALIZADOR PROFESIONAL</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --neon: #00f2ff; --matrix: #0bfb94; --danger: #ff3366; --gold: #ffd700;
-            --bg: #010205; --panel: #0a0c12; --border: #1a1e2a; --text: #d1d5db;
-        }
-        * { box-sizing: border-box; }
-        body { 
-            background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', 'Fira Code', monospace; 
-            margin: 0; display: grid; grid-template-columns: 420px 1fr 350px; height: 100vh; overflow: hidden;
-        }
-
-        /* --- ARQUITECTURA DE PANELES --- */
-        .sidebar-left, .sidebar-right { 
-            background: var(--panel); border: 1px solid var(--border); display: flex; 
-            flex-direction: column; padding: 20px; overflow-y: auto; gap: 15px;
-        }
-        .viewport-center { 
-            display: flex; flex-direction: column; border: 1px solid var(--border); 
-            background: radial-gradient(circle at center, #0d111a 0%, #010205 100%); position: relative;
-        }
-
-        /* --- DASHBOARD DE INGENIERÍA --- */
-        .stat-grid-50 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .stat-card { 
-            background: rgba(255,255,255,0.02); padding: 12px; border-radius: 4px; 
-            border-left: 3px solid var(--neon); transition: 0.3s;
-        }
-        .stat-card:hover { background: rgba(0,242,255,0.05); }
-        .stat-card label { display: block; font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-card span { font-size: 18px; font-weight: bold; color: #fff; }
-
-        textarea { 
-            width: 100%; height: 120px; background: #000; color: var(--matrix); 
-            border: 1px solid var(--border); border-radius: 4px; font-size: 10px; padding: 10px;
-        }
-
-        .btn-core {
-            background: linear-gradient(135deg, var(--neon), #0077ff);
-            color: #000; border: none; padding: 15px; font-weight: 900; 
-            border-radius: 4px; cursor: pointer; text-transform: uppercase;
-        }
-
-        canvas { width: 100%; height: 100%; }
-        
-        /* --- LOGS DE EVENTOS CRÍTICOS --- */
-        .event-log { 
-            flex: 1; background: #000; border: 1px solid #222; border-radius: 4px; 
-            padding: 10px; font-size: 11px; overflow-y: auto;
-        }
-        .log-entry { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #111; }
-        .c-crash { color: var(--danger); }
-        .c-air { color: var(--neon); }
-        .c-drift { color: var(--gold); }
+        body { background: #050505; color: #00f2ff; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 1000px; margin: auto; }
+        textarea { width: 100%; height: 100px; background: #111; border: 1px solid #00f2ff; color: #0f8; border-radius: 5px; padding: 10px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; background: #00f2ff; color: #000; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .card { background: #111; border: 1px solid #222; border-radius: 8px; padding: 15px; }
+        canvas { width: 100% !important; height: auto !important; background: #000; border-radius: 5px; }
+        .stat-box { display: flex; justify-content: space-around; text-align: center; margin-bottom: 10px; }
+        .stat-val { font-size: 20px; color: #fff; display: block; }
     </style>
 </head>
 <body>
 
-<aside class="sidebar-left">
-    <h1 style="color:var(--neon); margin:0; font-size:22px;">ULTRALYTICS X</h1>
-    <p style="font-size:10px; color:#555;">SISTEMA DE ANÁLISIS CINÉTICO INTEGRAL</p>
-
-    <textarea id="rawInput" placeholder="INJECT DATA STREAM..."></textarea>
-    <button class="btn-core" onclick="Engine.Init()">Analizar Telemetría</button>
-
-    <div class="stat-grid-50">
-        <div class="stat-card"><label>Top Speed</label><span id="s-max">0</span><small> km/h</small></div>
-        <div class="stat-card"><label>Peak G-Lat</label><span id="s-glat">0.0</span><small> G</small></div>
-        <div class="stat-card"><label>Downforce</label><span id="s-aero">0.0</span><small> kg</small></div>
-        <div class="stat-card"><label>Airtime</label><span id="s-air">0.0</span><small> s</small></div>
-        <div class="stat-card"><label>Sectors</label><span id="s-sec">0</span><small> / 3</small></div>
-        <div class="stat-card"><label>Distance</label><span id="s-dist">0.0</span><small> km</small></div>
-    </div>
-
-    <div class="event-log" id="log">
-        [SYS] LISTO PARA INYECCIÓN...
-    </div>
-</aside>
-
-<main class="viewport-center">
-    <div style="position:absolute; top:20px; left:20px; font-size:10px; color:var(--neon); z-index:10;">
-        PROYECCIÓN 3D: MODO ISO-DINÁMICO ACTIVADO
-    </div>
-    <canvas id="mainCanvas"></canvas>
-</main>
-
-<aside class="sidebar-right">
-    <h3 style="color:var(--gold); font-size:14px; margin:0;">STABILITY ANALYZER</h3>
+<div class="grid">
+    <h1>🛰️ ULTRALYTICS X-TREME ANALYZER</h1>
     
-    <div style="height:150px; background:#000; border-radius:5px;">
-        <canvas id="gCircleCanvas"></canvas>
+    <div class="card">
+        <textarea id="dataInput" placeholder="Pega el código cortado de Roblox aquí..."></textarea>
+        <button class="btn" onclick="analizarTodo()">REPARAR Y ANALIZAR FULL</button>
     </div>
 
-    <div class="stat-card" style="border-left-color: var(--danger);">
-        <label>Chassis Stress (Impact Energy)</label>
-        <span id="s-stress">0.0</span><small> kJ</small>
-    </div>
+    <div id="results" style="display:none;">
+        <div class="card stat-box">
+            <div><small>VEL. MÁX</small><span id="maxSpd" class="stat-val">0</span></div>
+            <div><small>PUNTOS</small><span id="ptsCount" class="stat-val">0</span></div>
+            <div><small>ESTADO</small><span id="statusTxt" class="stat-val">--</span></div>
+        </div>
 
-    <h3 style="color:var(--matrix); font-size:14px; margin-top:20px;">AI HEURISTICS</h3>
-    <div class="event-log" id="ai-advice" style="background:#05070a;">
-        ESPERANDO ANÁLISIS...
-    </div>
+        <div class="card">
+            <h3 style="margin-top:0;">🗺️ MAPA DE CALOR (VELOCIDAD)</h3>
+            <canvas id="mapCanvas"></canvas>
+        </div>
 
-    <button class="btn-core" style="background:#222; color:#fff;" onclick="Engine.Export()">Exportar Reporte Pro</button>
-</aside>
+        <div class="card">
+            <h3 style="margin-top:0;">📈 TELEMETRÍA AVANZADA</h3>
+            <canvas id="chartCanvas"></canvas>
+        </div>
+    </div>
+</div>
 
 <script>
-/**
- * ENGINE CORE v10.0
- * Incluye las 50 mejoras: Física 3D, G-Circle, Sectores, 
- * Reparación de datos y Análisis Aerodinámico.
- */
-const Engine = {
-    Samples: [],
-    Stats: {},
+let speedChart = null;
 
-    Init() {
-        const raw = document.getElementById('rawInput').value;
-        if(this.Parser.Run(raw)) {
-            this.Physics.Compute();
-            this.Renderer.All();
-            this.AI.Analyze();
-        }
-    },
+function analizarTodo() {
+    const input = document.getElementById('dataInput').value.trim();
+    const results = document.getElementById('results');
+    
+    try {
+        // --- MOTOR DE REPARACIÓN ---
+        let raw = input;
+        let lastBrace = raw.lastIndexOf('}');
+        if (lastBrace === -1) throw "No se encontraron datos válidos";
+        raw = raw.substring(0, lastBrace + 1);
+        if (!raw.startsWith('[')) raw = '[' + raw;
+        if (!raw.endsWith(']')) raw = raw + ']';
 
-    // 1-10: Reparación y Sincronización
-    Parser: {
-        Run(raw) {
-            const chunks = raw.match(/\{"time":.*?\}/g);
-            if(!chunks) return false;
-            Engine.Samples = chunks.map(c => {
-                try { return JSON.parse(c.endsWith('}') ? c : c + '}'); } catch(e) { return null; }
-            }).filter(s => s && s.pos);
-            return Engine.Samples.length > 0;
-        }
-    },
+        const samples = JSON.parse(raw);
+        results.style.display = 'block';
 
-    // 11-30: Motor de Física de Carreras
-    Physics: {
-        Compute() {
-            let maxV = 0, maxG = 0, dist = 0, air = 0, stress = 0;
-            
-            Engine.Samples.forEach((s, i) => {
-                const p = Engine.Samples[i-1] || s;
-                const dt = s.time - p.time || 0.1;
+        // Stats básicos
+        document.getElementById('ptsCount').innerText = samples.length;
+        document.getElementById('maxSpd').innerText = Math.max(...samples.map(s => s.speed)).toFixed(1) + " ST/S";
+        document.getElementById('statusTxt').innerText = "REPARADO ✅";
 
-                s.kmh = s.speed * 3.6;
-                s.gLat = (s.lateralSpeed || 0) / (dt * 9.8);
-                s.gLong = (s.deltaV || 0) / (dt * 9.8);
-                s.aero = Math.pow(s.speed, 2) * 0.006; // Downforce est.
+        dibujarMapa(samples);
+        dibujarGrafica(samples);
 
-                if(s.kmh > maxV) maxV = s.kmh;
-                if(Math.abs(s.gLat) > maxG) maxG = Math.abs(s.gLat);
-                
-                dist += Math.sqrt(Math.pow(s.pos.x-p.pos.x,2) + Math.pow(s.pos.z-p.pos.z,2));
-                
-                if(Math.abs(s.pos.y - p.pos.y) > 0.4) air += dt;
-                if(s.collision) stress += Math.abs(s.deltaV) * 2;
-            });
-
-            Engine.Stats = { maxV, maxG, dist: dist/1000, air, stress };
-            this.UpdateUI();
-        },
-        UpdateUI() {
-            document.getElementById('s-max').innerText = Math.round(Engine.Stats.maxV);
-            document.getElementById('s-glat').innerText = Engine.Stats.maxG.toFixed(2);
-            document.getElementById('s-dist').innerText = Engine.Stats.dist.toFixed(2);
-            document.getElementById('s-air').innerText = Engine.Stats.air.toFixed(2);
-            document.getElementById('s-stress').innerText = Engine.Stats.stress.toFixed(1);
-        }
-    },
-
-    // 31-45: Visualización 3D e Instrumentación
-    Renderer: {
-        All() { this.Map(); this.GCircle(); },
-        Map() {
-            const c = document.getElementById('mainCanvas');
-            const ctx = c.getContext('2d');
-            c.width = c.offsetWidth; c.height = c.offsetHeight;
-
-            const xs = Engine.Samples.map(s => s.pos.x), zs = Engine.Samples.map(s => s.pos.z);
-            const minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
-            const scale = Math.min((c.width-100)/(maxX-minX), (c.height-100)/(maxZ-minZ));
-
-            Engine.Samples.forEach((s, i) => {
-                if(i === 0) return;
-                const p = Engine.Samples[i-1];
-
-                const project = (val) => ({
-                    x: (val.pos.x - minX) * scale + 50,
-                    y: (val.pos.z - minZ) * scale + 50 - (val.pos.y * 2) // Altura 3D
-                });
-
-                const p1 = project(p), p2 = project(s);
-                ctx.beginPath();
-                ctx.lineWidth = Math.max(2, s.speed / 12);
-                ctx.strokeStyle = `hsl(${180 - Math.abs(s.gLat)*60}, 100%, 50%)`;
-                ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
-                ctx.stroke();
-
-                if(s.collision) {
-                    ctx.fillStyle = "white"; ctx.fillText("💥", p2.x-5, p2.y);
-                }
-            });
-        },
-        GCircle() {
-            const c = document.getElementById('gCircleCanvas');
-            const ctx = c.getContext('2d');
-            c.width = 150; c.height = 150;
-            ctx.strokeStyle = "#333"; ctx.beginPath(); ctx.arc(75,75,60,0,Math.PI*2); ctx.stroke();
-            const last = Engine.Samples[Engine.Samples.length-1];
-            ctx.fillStyle = "var(--neon)";
-            ctx.fillRect(75 + (last.gLat * 20), 75 + (last.gLong * 20), 5, 5);
-        }
-    },
-
-    // 46-50: IA y Exportación
-    AI: {
-        Analyze() {
-            const adv = document.getElementById('ai-advice');
-            adv.innerHTML = "";
-            if(Engine.Stats.maxG > 3) adv.innerHTML += "<div>⚠️ ALTA CARGA G: REVISA SUSPENSIÓN</div>";
-            if(Engine.Stats.air > 1) adv.innerHTML += "<div>✈️ SALTO DETECTADO: PÉRDIDA DE TRACCIÓN</div>";
-            Engine.Samples.filter(s => s.collision).forEach(s => {
-                adv.innerHTML += `<div class='c-crash'>[ERROR] IMPACTO A ${s.kmh.toFixed(0)} KM/H</div>`;
-            });
-        }
+    } catch (e) {
+        alert("Error: El texto está demasiado dañado o no es telemetría.");
     }
-};
+}
+
+function dibujarMapa(samples) {
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 800; canvas.height = 500;
+
+    const xs = samples.map(s => s.pos.x);
+    const zs = samples.map(s => s.pos.z);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+    const scale = Math.min(740/(maxX-minX), 440/(maxZ-minZ));
+
+    ctx.clearRect(0,0,800,500);
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+
+    for(let i=1; i<samples.length; i++) {
+        const p1 = samples[i-1], p2 = samples[i];
+        const x1 = (p1.pos.x - minX)*scale + 30, y1 = (p1.pos.z - minZ)*scale + 30;
+        const x2 = (p2.pos.x - minX)*scale + 30, y2 = (p2.pos.z - minZ)*scale + 30;
+
+        const hue = Math.max(0, 200 - (p2.speed * 1.5));
+        ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+}
+
+function dibujarGrafica(samples) {
+    const ctx = document.getElementById('chartCanvas').getContext('2d');
+    if (speedChart) speedChart.destroy();
+
+    speedChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: samples.map(s => s.time.toFixed(1) + "s"),
+            datasets: [{
+                label: 'Velocidad (Studs/s)',
+                data: samples.map(s => s.speed),
+                borderColor: '#00f2ff',
+                borderWidth: 2,
+                fill: true,
+                backgroundColor: 'rgba(0, 242, 255, 0.1)',
+                pointRadius: 0
+            }, {
+                label: 'Giro (Steer)',
+                data: samples.map(s => (s.steer || 0) * 50), // Escalado para ver
+                borderColor: '#ff00ff',
+                borderWidth: 1,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { grid: { color: '#222' } }, x: { grid: { display: false } } }
+        }
+    });
+}
 </script>
 </body>
 </html>
